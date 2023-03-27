@@ -14,8 +14,9 @@ def acc_stack_effect(instructions):
 def test_convert():
   def foo(a):
     b = bar(1 + a)
-    c = b + a
-    return bar(c)
+    c.x, d = b + a, 30
+    return bar(c.x)
   instructions = list(dis.get_instructions(foo))
   acc_stack_effect(instructions)
-  return convert_to_bytecode_ast(instructions)
+  from pprint import pprint
+  pprint(convert_to_bytecode_ast(instructions).dump())

@@ -19,7 +19,8 @@ class StatementNode(BytecodeAstNode):
     self.store_instructions = store_instructions
 
   def dump(self):
-    return (self.expr_node.dump(), [instr.dump() for instr in self.store_instructions])
+    return (self.expr_node.dump(),
+            list([tuple(instr.dump() for instr in instrs) for instrs in self.store_instructions]))
 
 class ExpressionNode(BytecodeAstNode):
   def __init__(self, children):

@@ -24,15 +24,33 @@ def convert_to_statement_list_node(instructions):
 
 def convert_to_statement_node(instructions):
   assert instr_stack_util.num_outputs_on_stack(instructions[-1]) == 0, instructions[-1]
-  store_instr_pos = -1
-  while instr_stack_util.num_outputs_on_stack(instructions[store_instr_pos]) != 0:
-    store_instr_pos = store_instr_pos - 1
-  expr_instructions = instructions[0:store_instr_pos]
-  store_instructions = instructions[store_instr_pos:]
-  return bytecode_ast.StatementNode(
-    convert_to_expression_node(expr_instructions),
-    [bytecode_ast.InstructionNode(instruction) for instruction in store_instructions]
-  )
+  store_nodes = []
+  while True:
+    instructions, store_instructions = _get_prev_store_instructions(instructions)
+    if len(store_instructions) == 0:
+      break;
+    elif len(store_instructions) == 1:
+      store_nodes.append((bytecode_ast.InstructionNode(store_instructions[0]),))
+    elif len(store_instructions) > 1:
+      store_node = bytecode_ast.InstructionNode(store_instructions[-1])
+      assert store_node.num_inputs_on_stack() == 2, store_instructions[-1]
+      assert store_node.num_outputs_on_stack() == 0, store_instructions[-1]
+      store_nodes.append((convert_to_expression_node(store_instructions[:-1]), store_node))
+    else:
+      raise NotImplementedError("store instructions not supported: %s" % store_instructions[-1])
+  return bytecode_ast.StatementNode(convert_to_expression_node(instructions), store_nodes)
+
+def _get_prev_store_instructions(instructions):
+  if not instr_stack_util.opcode2is_store_or_delete[instructions[-1].opcode]:
+    return instructions, []
+  acc_stack_effect = 0
+  pos = len(instructions)
+  while pos > 0:
+    pos -= 1
+    acc_stack_effect += instr_stack_util.stack_effect(instructions[pos])
+    if acc_stack_effect == -1:
+      return instructions[0:pos], instructions[pos:]
+  raise NotImplementedError("dead code")
 
 def convert_to_expression_node(instructions):
   # `symbolic_stack` contains instances of BytecodeAstNode.
