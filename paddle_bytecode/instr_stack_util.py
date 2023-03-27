@@ -4,20 +4,20 @@ import sys
 def stack_effect(instruction):
   return dis.stack_effect(instruction.opcode, instruction.arg)
 
-def stack_num_inputs(instruction):
-  return stack_num_outputs(instruction) - stack_effect(instruction)
+def num_inputs_on_stack(instruction):
+  return num_outputs_on_stack(instruction) - stack_effect(instruction)
   
 # For all instructions Please keep that
 #
-#   stack_num_outputs(instruction) ==
+#   num_outputs_on_stack(instruction) ==
 #       stack_effect(instruction) + actual_number_stack_elements_consumed(instruction)
 #
 # e.g.
 #   stack_effect(ROT_THREE) is 0, actual_number_stack_elements_consumed(ROT_THREE) is 3,
-#   so we must define stack_num_outputs(ROT_THREE) as 3.
+#   so we must define num_outputs_on_stack(ROT_THREE) as 3.
 #  
-def stack_num_outputs(instruction):
-  return opcode2stack_num_outputs[instruction.opcode](instruction)
+def num_outputs_on_stack(instruction):
+  return opcode2num_outputs_on_stack[instruction.opcode](instruction)
 
 
 if sys.version_info[0:2] == (3, 8):
@@ -66,7 +66,7 @@ if sys.version_info[0:2] == (3, 8):
     GET_YIELD_FROM_ITER=1,
     PRINT_EXPR=0,
     LOAD_BUILD_CLASS=1,
-    YIELD_FROM=0,
+#    YIELD_FROM=?,
     GET_AWAITABLE=1,
     INPLACE_LSHIFT=1,
     INPLACE_RSHIFT=1,
@@ -146,16 +146,18 @@ if sys.version_info[0:2] == (3, 8):
 else:
   raise NotImplementedError("paddle_bytecode module is not supported in version" % sys.version_info)
 
-def generate_opcode2stack_num_outputs():
-  def UnimplementedFunction(instruction):
-    raise NotImplementedError("static_num_outputs is not implemented for " % instruction)
+def generate_opcode2num_outputs_on_stack():
+  def UnimplementedFunction(opcode):
+    def f(instruction):
+      raise NotImplementedError("static_num_outputs is not implemented for opname: " % dis.opname[opcode])
+    return f
   def Const(number):
     return lambda _: number
-  max_op_code = 256
-  opcode2stack_num_outputs = [UnimplementedFunction] * max_op_code
+  opcode_size = 256
+  opcode2num_outputs_on_stack = [UnimplementedFunction(i) for i in range(opcode_size)]
   for op_name, num_or_f in opname2output_num_or_f.items():
     f = num_or_f if callable(num_or_f) else Const(num_or_f)
-    opcode2stack_num_outputs[dis.opmap[op_name]] = f
-  return opcode2stack_num_outputs
+    opcode2num_outputs_on_stack[dis.opmap[op_name]] = f
+  return opcode2num_outputs_on_stack
 
-opcode2stack_num_outputs = generate_opcode2stack_num_outputs()
+opcode2num_outputs_on_stack = generate_opcode2num_outputs_on_stack()
