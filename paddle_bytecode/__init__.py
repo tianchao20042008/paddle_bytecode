@@ -13,7 +13,7 @@ def acc_stack_effect(instructions):
 # TODO delete them before release.
 def test_convert():
   def foo(a):
-    b = bar(1 + a)
+    b = bar(1 + a ** 2)
     c.x, d = b + a, 30
     return bar(c.x)
   instructions = list(dis.get_instructions(foo))
