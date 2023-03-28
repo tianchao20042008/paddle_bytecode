@@ -52,7 +52,7 @@ class InferIsProcedureStaticConvertibleTransform:
     ast_node.is_procedure_static_convertible = is_procedure_static_convertible
 
   def InstructionNode(self, ast_node):
-    ast_node.is_procedure_static_convertible = self.get_is_procedure_static_convertible(ast_node.instruction)
+    ast_node.is_procedure_static_convertible = self.get_is_procedure_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):
     ast_node.is_procedure_static_convertible = True
@@ -112,16 +112,18 @@ class InferIsResultStaticConvertibleTransform:
     ast_node.is_result_static_convertible = last_child.is_result_static_convertible
 
   def InstructionNode(self, ast_node):
-    ast_node.is_result_static_convertible = self.get_is_result_static_convertible(ast_node.instruction)[0]
+    ast_node.is_result_static_convertible = self.get_is_result_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):
     ast_node.is_result_static_convertible = (True,)
 
   def LOAD_FAST(self, ast_node):
     if ast_node.instruction.argval in self.local_name2is_result_static_convertible:
-      return self.local_name2is_result_static_convertible[ast_node.instruction.argval]
+      ast_node.is_result_static_convertible = (
+        self.local_name2is_result_static_convertible[ast_node.instruction.argval]
+      )
     else:
-      return self.get_is_result_static_convertible(ast_node.instruction)[0]
+      ast_node.is_result_static_convertible = self.get_is_result_static_convertible(ast_node)
 
   def store_is_local_var_static_convertible(self, ast_node, is_value_static_convertible):
-    self.local_name2is_result_static_convertible[ast_node.instruction.argval] = is_value_static_convertible
+    self.local_name2is_result_static_convertible[ast_node.instruction.argval] = (is_value_static_convertible,)

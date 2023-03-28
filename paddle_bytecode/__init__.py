@@ -23,3 +23,27 @@ def test_convert():
   print(type(node).__name__)
   from .dump_transform import DumpTransform
   pprint(DumpTransform().dump(node))
+
+# NOTE used in repl.
+# TODO delete them before release.
+def test_infer_static_convertible():
+  def foo(a):
+    b = bar(1 + a ** 2)
+    print(b)
+    c.x, d = b + a, 30
+    return bar(c.x)
+  instructions = list(dis.get_instructions(foo))
+  from pprint import pprint
+  node = convert_to_bytecode_ast(instructions)
+  print(type(node).__name__)
+  from .dump_transform import DumpTransform
+  from .infer_static_convertible_transform import InferIsProcedureStaticConvertibleTransform
+  def is_procedure_static_convertible(ast_node):
+    i = ast_node.instruction
+    return not (i.opname == "LOAD_GLOBAL" and i.argval == "print")
+  InferIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).infer(node)
+  from .infer_static_convertible_transform import InferIsResultStaticConvertibleTransform
+  def is_result_static_convertible(ast_node):
+    return (True,) * ast_node.num_outputs_on_stack()
+  InferIsResultStaticConvertibleTransform(is_result_static_convertible).infer(node)
+  pprint(DumpTransform().dump(node))
