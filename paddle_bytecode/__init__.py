@@ -19,4 +19,7 @@ def test_convert():
   instructions = list(dis.get_instructions(foo))
   acc_stack_effect(instructions)
   from pprint import pprint
-  pprint(convert_to_bytecode_ast(instructions).dump())
+  node = convert_to_bytecode_ast(instructions)
+  print(type(node).__name__)
+  from .dump_transform import DumpTransform
+  pprint(DumpTransform().dump(node))
