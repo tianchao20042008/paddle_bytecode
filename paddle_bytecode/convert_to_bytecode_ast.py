@@ -30,9 +30,9 @@ def convert_to_statement_node(instructions):
     if len(store_instructions) == 0:
       break;
     elif len(store_instructions) == 1:
-      store_nodes.append((bytecode_ast.InstructionNode(store_instructions[0]),))
+      store_nodes.append((convert_to_instruction_node(store_instructions[0]),))
     elif len(store_instructions) > 1:
-      store_node = bytecode_ast.InstructionNode(store_instructions[-1])
+      store_node = convert_to_instruction_node(store_instructions[-1])
       assert store_node.num_inputs_on_stack() == 2, store_instructions[-1]
       assert store_node.num_outputs_on_stack() == 0, store_instructions[-1]
       store_nodes.append((convert_to_expression_node(store_instructions[:-1]), store_node))
@@ -56,7 +56,7 @@ def convert_to_expression_node(instructions):
   # `symbolic_stack` contains instances of BytecodeAstNode.
   symbolic_stack = []
   for instruction in instructions:
-    node = bytecode_ast.InstructionNode(instruction)
+    node = convert_to_instruction_node(instruction)
     num_inputs_on_stack = node.num_inputs_on_stack()
     if num_inputs_on_stack == 0:
       symbolic_stack.append(node)
@@ -73,3 +73,10 @@ def convert_to_expression_node(instructions):
       symbolic_stack.append(bytecode_ast.ExpressionNode(expression_children))
   assert len(symbolic_stack) == 1
   return symbolic_stack[0]
+
+def convert_to_instruction_node(instruction):
+  if hasattr(bytecode_ast, instruction.opname):
+    cls = getattr(bytecode_ast, instruction.opname)
+  else:
+    cls = bytecode_ast.InstructionNode
+  return cls(instruction)
