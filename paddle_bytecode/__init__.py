@@ -36,6 +36,8 @@ def test_infer_static_convertible():
   from pprint import pprint
   node = convert_to_bytecode_ast(instructions)
   print(type(node).__name__)
+  from .init_bytecode_attr_transform import InitBytecodeAttrTransform
+  InitBytecodeAttrTransform().init(node)
   from .dump_transform import DumpTransform
   from .infer_static_convertible_transform import InferIsProcedureStaticConvertibleTransform
   def is_procedure_static_convertible(ast_node):
