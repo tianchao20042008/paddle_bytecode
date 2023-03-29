@@ -29,18 +29,18 @@ class InferIsProcedureStaticConvertibleTransform:
     is_procedure_static_convertible = (
       is_procedure_static_convertible and self.attr(ast_node.expr_node).is_procedure_static_convertible
     )
-    for store_instruction_tuple in ast_node.store_instructions:
-      if len(store_instruction_tuple) == 1:
+    for store_node_tuple in ast_node.store_nodes:
+      if len(store_node_tuple) == 1:
         # example0: `a = foo()`
-        self.attr(store_instruction_tuple[0]).is_procedure_static_convertible = True
-      elif len(store_instruction_tuple) == 2:
+        self.attr(store_node_tuple[0]).is_procedure_static_convertible = True
+      elif len(store_node_tuple) == 2:
         # example0: `a[bar()] = foo()`
         # example1: `a.bar = foo()`
-        self.infer(store_instruction_tuple[0])
+        self.infer(store_node_tuple[0])
         is_procedure_static_convertible = (
-          is_procedure_static_convertible and self.attr(store_instruction_tuple[0]).is_procedure_static_convertible
+          is_procedure_static_convertible and self.attr(store_node_tuple[0]).is_procedure_static_convertible
         )
-        self.attr(store_instruction_tuple[1]).is_procedure_static_convertible = True
+        self.attr(store_node_tuple[1]).is_procedure_static_convertible = True
       else:
         raise NotImplementedError()
     self.attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
@@ -86,23 +86,23 @@ class InferIsResultStaticConvertibleTransform:
 
   def StatementNode(self, ast_node):
     self.infer(ast_node.expr_node)
-    for i, store_instruction_tuple in enumerate(ast_node.store_instructions):
-      if len(store_instruction_tuple) == 1:
+    for i, store_node_tuple in enumerate(ast_node.store_nodes):
+      if len(store_node_tuple) == 1:
         # example0: `a = foo()`
-        store_instruction = store_instruction_tuple[0]
-        # store_instruction has no results on stack.
-        self.attr(store_instruction).is_result_static_convertible = ()
-        if store_instruction.instruction.opname == "STORE_FAST":
+        store_node = store_node_tuple[0]
+        # store_node has no results on stack.
+        self.attr(store_node).is_result_static_convertible = ()
+        if store_node.instruction.opname == "STORE_FAST":
           # help to infer is_result_static_convertible for added instructions in compile pass.
           self.store_is_local_var_static_convertible(
-            store_instruction, self.attr(ast_node.expr_node).is_result_static_convertible[i]
+            store_node, self.attr(ast_node.expr_node).is_result_static_convertible[i]
           )
-      elif len(store_instruction_tuple) == 2:
+      elif len(store_node_tuple) == 2:
         # example0: `a[bar()] = foo()`
         # example1: `a.bar = foo()`
-        self.infer(store_instruction_tuple[0])
-        # store_instruction_tuple[1] has no results on stack.
-        self.attr(store_instruction_tuple[1]).is_result_static_convertible = ()
+        self.infer(store_node_tuple[0])
+        # store_node_tuple[1] has no results on stack.
+        self.attr(store_node_tuple[1]).is_result_static_convertible = ()
       else:
         raise NotImplementedError()
     # Statement has no results on stack.

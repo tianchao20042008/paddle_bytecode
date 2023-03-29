@@ -16,14 +16,14 @@ class StatementListNode(BytecodeAstNode):
     yield from self.children
 
 class StatementNode(BytecodeAstNode):
-  def __init__(self, expr_node, store_instructions, **kwargs):
+  def __init__(self, expr_node, store_nodes, **kwargs):
     super().__init__(**kwargs)
     self.expr_node = expr_node
-    self.store_instructions = store_instructions
+    self.store_nodes = store_nodes
 
   def flat_children(self):
     yield self.expr_node
-    for instructions in self.store_instructions:
+    for instructions in self.store_nodes:
       yield from instructions
 
 

@@ -17,7 +17,7 @@ class DumpTransform:
 
   def StatementNode(self, ast_node):
     return (self.dump(ast_node.expr_node),
-            list([tuple(self.dump(instr) for instr in instrs) for instrs in ast_node.store_instructions]))
+            list([tuple(self.dump(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
 
   def ExpressionNode(self, ast_node):
     return (tuple(self.dump(child) for child in ast_node.children), self.attr(ast_node).is_procedure_static_convertible)
