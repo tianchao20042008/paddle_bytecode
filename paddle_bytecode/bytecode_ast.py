@@ -1,8 +1,8 @@
 from . import instr_stack_util
 
 class BytecodeAstNode:
-  def __init__(self, data=None):
-    self.data = data
+  def __init__(self):
+    pass
 
   def flat_children(self):
     raise NotImplementedError()

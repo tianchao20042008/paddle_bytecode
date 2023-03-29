@@ -35,17 +35,16 @@ def test_infer_static_convertible():
   instructions = list(dis.get_instructions(foo))
   from pprint import pprint
   node = convert_to_bytecode_ast(instructions)
-  print(type(node).__name__)
-  from .init_bytecode_attr_transform import InitBytecodeAttrTransform
-  InitBytecodeAttrTransform().init(node)
+  from .bytecode_attr import BytecodeAttr
+  get_attr = BytecodeAttr.make_getter()
   from .dump_transform import DumpTransform
   from .infer_static_convertible_transform import InferIsProcedureStaticConvertibleTransform
   def is_procedure_static_convertible(ast_node):
     i = ast_node.instruction
     return not (i.opname == "LOAD_GLOBAL" and i.argval == "print")
-  InferIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).infer(node)
+  InferIsProcedureStaticConvertibleTransform(is_procedure_static_convertible, get_attr).infer(node)
   from .infer_static_convertible_transform import InferIsResultStaticConvertibleTransform
   def is_result_static_convertible(ast_node):
     return (True,) * ast_node.num_outputs_on_stack()
-  InferIsResultStaticConvertibleTransform(is_result_static_convertible).infer(node)
-  pprint(DumpTransform().dump(node))
+  InferIsResultStaticConvertibleTransform(is_result_static_convertible, get_attr).infer(node)
+  pprint(DumpTransform(get_attr).dump(node))
