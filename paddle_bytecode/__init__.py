@@ -20,9 +20,10 @@ def test_convert():
   acc_stack_effect(instructions)
   from pprint import pprint
   node = convert_to_bytecode_ast(instructions)
-  print(type(node).__name__)
+  from .bytecode_attr import BytecodeAttr
+  get_attr = BytecodeAttr.make_getter()
   from .dump_transform import DumpTransform
-  pprint(DumpTransform().dump(node))
+  pprint(DumpTransform(get_attr).dump(node))
 
 # NOTE used in repl.
 # TODO delete them before release.
