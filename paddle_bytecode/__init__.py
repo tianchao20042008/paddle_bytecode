@@ -22,10 +22,10 @@ def test_diff():
     c.x, d = b + a, 30
     return bar(c.x)
   ast_node1 = convert_to_bytecode_ast(list(dis.get_instructions(foo1)))
-  from .diff_opname_and_argval_transform import DiffOpnameAndArgvalTransform
   from .unwrap_func_by_name_transform import UnwrapFuncByNameTransform
   ast_node1 = UnwrapFuncByNameTransform("bar").unwrap(ast_node1)
-  assert DiffOpnameAndArgvalTransform().diff(ast_node0, ast_node1)
+  from .diff_opname_and_argval_interpreter import DiffOpnameAndArgvalInterpreter
+  assert DiffOpnameAndArgvalInterpreter().interpret(ast_node0, ast_node1)
   from .dump_transform import DumpTransform
   from .bytecode_attr import BytecodeAttr
   get_attr = BytecodeAttr.make_getter()

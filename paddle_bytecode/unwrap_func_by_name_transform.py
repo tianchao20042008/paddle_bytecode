@@ -16,8 +16,10 @@ class UnwrapFuncByNameTransform:
     return type(ast_node)([self.unwrap(child) for child in ast_node.children])
 
   def StatementNode(self, ast_node):
-    return type(ast_node)(self.unwrap(ast_node.expr_node),
-            list([tuple(self.unwrap(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
+    return type(ast_node)(
+      self.unwrap(ast_node.expr_node),
+      list([tuple(self.unwrap(instr) for instr in instrs) for instrs in ast_node.store_nodes])
+    )
 
   def ExpressionNode(self, ast_node):
     if not isinstance(ast_node.children[-1], bytecode_ast.InstructionNodeBase):

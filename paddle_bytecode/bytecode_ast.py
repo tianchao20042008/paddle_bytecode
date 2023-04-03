@@ -26,7 +26,7 @@ class StatementNode(BytecodeAstNode):
     for instructions in self.store_nodes:
       yield from instructions
 
-class ExpressionNode(BytecodeAstNode):
+class ExpressionNodeBase(BytecodeAstNode):
   def __init__(self, children):
     super().__init__()
     self.children = children
@@ -36,6 +36,10 @@ class ExpressionNode(BytecodeAstNode):
 
   def flat_children(self):
     yield from self.children
+
+class ExpressionNode(ExpressionNodeBase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
 class InstructionNodeBase(BytecodeAstNode):
   def __init__(self, instruction):

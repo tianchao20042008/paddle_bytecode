@@ -6,8 +6,8 @@ from . import bytecode_ast
 class InferIsProcedureStaticConvertibleTransform:
 
   def __init__(self,
-              get_is_procedure_static_convertible: Callable[["Instruction"], bool],
-              mut_attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
+               get_is_procedure_static_convertible: Callable[["Instruction"], bool],
+               mut_attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
     self.get_is_procedure_static_convertible = get_is_procedure_static_convertible
     self.mut_attr = mut_attr
 
