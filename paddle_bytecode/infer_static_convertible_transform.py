@@ -6,9 +6,9 @@ from . import bytecode_ast
 class InferIsProcedureStaticConvertibleTransform:
 
   def __init__(self,
-               get_is_procedure_static_convertible: Callable[["Instruction"], bool],
+               is_procedure_static_convertible: Callable[["BytecodeAstNode"], bool],
                mut_attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
-    self.get_is_procedure_static_convertible = get_is_procedure_static_convertible
+    self.is_procedure_static_convertible = is_procedure_static_convertible
     self.mut_attr = mut_attr
 
   def infer(self, ast_node):
@@ -55,7 +55,7 @@ class InferIsProcedureStaticConvertibleTransform:
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
   def InstructionNode(self, ast_node):
-    self.mut_attr(ast_node).is_procedure_static_convertible = self.get_is_procedure_static_convertible(ast_node)
+    self.mut_attr(ast_node).is_procedure_static_convertible = self.is_procedure_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):
     self.mut_attr(ast_node).is_procedure_static_convertible = True
@@ -69,9 +69,9 @@ class InferIsProcedureStaticConvertibleTransform:
 class InferIsResultStaticConvertibleTransform:
 
   def __init__(self,
-               get_is_result_static_convertible: Callable[["Instruction"], List[bool]],
+               is_result_static_convertible: Callable[["Instruction"], List[bool]],
                mut_attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
-    self.get_is_result_static_convertible = get_is_result_static_convertible
+    self.is_result_static_convertible = is_result_static_convertible
     self.mut_attr = mut_attr
     self.local_name2is_result_static_convertible = {}
 
@@ -117,7 +117,7 @@ class InferIsResultStaticConvertibleTransform:
     self.mut_attr(ast_node).is_result_static_convertible = self.mut_attr(last_child).is_result_static_convertible
 
   def InstructionNode(self, ast_node):
-    self.mut_attr(ast_node).is_result_static_convertible = self.get_is_result_static_convertible(ast_node)
+    self.mut_attr(ast_node).is_result_static_convertible = self.is_result_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):
     self.mut_attr(ast_node).is_result_static_convertible = (True,)
@@ -128,7 +128,28 @@ class InferIsResultStaticConvertibleTransform:
         self.local_name2is_result_static_convertible[ast_node.instruction.argval]
       )
     else:
-      self.mut_attr(ast_node).is_result_static_convertible = self.get_is_result_static_convertible(ast_node)
+      self.mut_attr(ast_node).is_result_static_convertible = self.is_result_static_convertible(ast_node)
 
   def store_is_local_var_static_convertible(self, ast_node, is_value_static_convertible):
     self.local_name2is_result_static_convertible[ast_node.instruction.argval] = (is_value_static_convertible,)
+
+class InferStaticConvertibleTransform:
+  def __init__(self,
+               mut_attr: Callable[["BytecodeAstNode"], "BytecodeAttr"],
+               is_procedure_static_convertible: Callable[["BytecodeAstNode"], bool],
+               is_result_static_convertible: Callable[["Instruction"], List[bool]]):
+    self.mut_attr = mut_attr
+    self.is_procedure_static_convertible = is_procedure_static_convertible
+    self.is_result_static_convertible = is_result_static_convertible
+
+  def infer(self, ast_node):
+    infer_procedure = InferIsProcedureStaticConvertibleTransform(
+      self.is_procedure_static_convertible,
+      self.mut_attr,
+    )
+    infer_procedure.infer(ast_node)
+    infer_result = InferIsResultStaticConvertibleTransform(
+      self.is_result_static_convertible,
+      self.mut_attr,
+    )
+    infer_result.infer(ast_node)
