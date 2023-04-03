@@ -13,7 +13,7 @@ class Instruction:
     self.is_jump_target = is_jump_target
 
   @staticmethod
-  def clone_from(instruction: Union[dis.Instruction, Instruction]):
+  def clone_from(instruction: Union[dis.Instruction, "Instruction"]):
     return Instruction(
       opcode=instruction.opcode,
       opname=instruction.opname,

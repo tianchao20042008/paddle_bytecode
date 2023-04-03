@@ -1,3 +1,4 @@
+from typing import Callable
 from functools import reduce
 from . import bytecode_ast
 from .instruction import Instruction
@@ -30,8 +31,8 @@ class FlattenExpressionTransform:
 
   def StatementNode(self, ast_node, called_in_expr):
     expr_in_store_nodes = reduce(
-      lambda nodes, acc:
-        acc and reduce(lambda x, a: a and isinstance(x, bytecode_ast.ExpressionNodeBase), nodes, True),
+      lambda acc, nodes:
+        acc and reduce(lambda a, x: a and isinstance(x, bytecode_ast.ExpressionNodeBase), nodes, True),
       ast_node.store_nodes,
       True,
     )
@@ -64,7 +65,7 @@ class FlattenExpressionTransform:
     return type(ast_node)(new_children)
 
   def generate_local_var_for_expr(self, ast_node):
-    if not isinstance(ast_node, bytecode_ast.ExpressionNodeBase)
+    if not isinstance(ast_node, bytecode_ast.ExpressionNodeBase):
       return ast_node
     local_varname = self.generate_new_local_varname()
     store_opname = "STORE_FAST"

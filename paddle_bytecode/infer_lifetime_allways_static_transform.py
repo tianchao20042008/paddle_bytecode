@@ -1,4 +1,4 @@
-from typing import Callable,Map
+from typing import Callable, List
 from dataclasses import dataclass
 from .bytecode_attr import BytecodeAttr
 
@@ -17,6 +17,7 @@ class InferCtx:
   def make_gettable_and_mutable(node2ctx: dict = None):
     node2ctx = {} if node2ctx is None else node2ctx
     def gettable(node):
+      assert node in node2ctx, node
       return node2ctx[node]
     def mutable(node):
       if node not in node2ctx:
@@ -44,7 +45,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
       return default_val
 
   def infer(self, ast_node, consumed_by_static: List[bool] =(True,)):
-    return getattr(self, type(ast_node).__name__)(ast_node)
+    return getattr(self, type(ast_node).__name__)(ast_node, consumed_by_static)
     
   def StatementListNode(self, ast_node, consumed_by_static):
     reversed_children = ast_node.children[::-1]
@@ -69,7 +70,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
   #   print(a)
   def infer_lvalue_in_store_nodes(self, store_nodes) -> bool:
     opname = store_nodes[-1].instruction.opname
-    return getattr(self, type(ast_node).__name__)(store_nodes)
+    return getattr(self, opname)(store_nodes)
 
   def POP_TOP(self, store_nodes):
     assert len(store_nodes) == 1

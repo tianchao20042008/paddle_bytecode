@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 from .infer_static_convertible_transform import InferStaticConvertibleTransform
 from .infer_lifetime_allways_static_transform import InferLifetimeAllwaysStaticTransform
 

@@ -1,6 +1,6 @@
 class DiffOpnameAndArgvalInterpreter:
 
-  def interpret(self, lhs_ast_node, rhs_ast_node):
+  def diff(self, lhs_ast_node, rhs_ast_node):
     ast_cls = type(lhs_ast_node)
     if ast_cls != type(rhs_ast_node):
       return False
@@ -11,7 +11,7 @@ class DiffOpnameAndArgvalInterpreter:
     if len(lhs_flat_children) != len(rhs_flat_children):
       return False
     for lhs_child, rhs_child in zip(lhs_flat_children, rhs_flat_children):
-      if not self.interpret(lhs_child, rhs_child):
+      if not self.diff(lhs_child, rhs_child):
         return False
     return True
 
