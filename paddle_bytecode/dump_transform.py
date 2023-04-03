@@ -25,6 +25,5 @@ class DumpTransform:
   def InstructionNodeBase(self, ast_node):
     return (
       ast_node.instruction.opname,
-      ast_node.instruction.arg,
       ast_node.instruction.argval,
       self.attr(ast_node).is_procedure_static_convertible)

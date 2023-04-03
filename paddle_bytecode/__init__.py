@@ -11,6 +11,46 @@ def acc_stack_effect(instructions):
     
 # NOTE used in repl.
 # TODO delete them before release.
+def test_diff():
+  def foo0(a):
+    b = 1 + a ** 2
+    c.x, d = b + a, 30
+    return c.x
+  ast_node0 = convert_to_bytecode_ast(list(dis.get_instructions(foo0)))
+  def foo1(a):
+    b = bar(1 + a ** 2)
+    c.x, d = b + a, 30
+    return bar(c.x)
+  ast_node1 = convert_to_bytecode_ast(list(dis.get_instructions(foo1)))
+  from .diff_opname_and_argval_transform import DiffOpnameAndArgvalTransform
+  from .unwrap_func_by_name_transform import UnwrapFuncByNameTransform
+  ast_node1 = UnwrapFuncByNameTransform("bar").unwrap(ast_node1)
+  assert DiffOpnameAndArgvalTransform().diff(ast_node0, ast_node1)
+  from .dump_transform import DumpTransform
+  from .bytecode_attr import BytecodeAttr
+  get_attr = BytecodeAttr.make_getter()
+  from pprint import pprint
+  assert DumpTransform(get_attr).dump(ast_node0) == DumpTransform(get_attr).dump(ast_node1)
+
+# NOTE used in repl.
+# TODO delete them before release.
+def test_unwrap():
+  def foo(a):
+    b = bar(1 + a ** 2)
+    c.x, d = b + a, 30
+    return bar(c.x)
+  instructions = list(dis.get_instructions(foo))
+  acc_stack_effect(instructions)
+  from pprint import pprint
+  node = convert_to_bytecode_ast(instructions)
+  from .bytecode_attr import BytecodeAttr
+  get_attr = BytecodeAttr.make_getter()
+  from .unwrap_func_by_name_transform import UnwrapFuncByNameTransform
+  from .dump_transform import DumpTransform
+  pprint(DumpTransform(get_attr).dump(UnwrapFuncByNameTransform("bar").unwrap(node)))
+
+# NOTE used in repl.
+# TODO delete them before release.
 def test_convert():
   def foo(a):
     b = bar(1 + a ** 2)
@@ -22,8 +62,9 @@ def test_convert():
   node = convert_to_bytecode_ast(instructions)
   from .bytecode_attr import BytecodeAttr
   get_attr = BytecodeAttr.make_getter()
+  from .clone_transform import CloneTransform
   from .dump_transform import DumpTransform
-  pprint(DumpTransform(get_attr).dump(node))
+  pprint(DumpTransform(get_attr).dump(CloneTransform().clone(node)))
 
 # NOTE used in repl.
 # TODO delete them before release.

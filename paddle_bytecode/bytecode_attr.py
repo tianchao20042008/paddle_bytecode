@@ -9,12 +9,12 @@ class BytecodeAttr:
 
   # tuple of bool.
   # is_result_static_convertible[i] is True if the ith result of this ast_node is static convertible.
-  is_result_static_convertible: LIST[bool] = ()
+  is_result_static_convertible: List[bool] = ()
 
   # tuple of bool.
   # lifetime_allways_static[i] is True if no dynamic python code touched
   # during the lifetime of the ith result of this ast_node.
-  lifetime_allways_static: LIST[bool] = None
+  lifetime_allways_static: List[bool] = None
 
   @staticmethod
   def make_getter(node2attr: dict = None):

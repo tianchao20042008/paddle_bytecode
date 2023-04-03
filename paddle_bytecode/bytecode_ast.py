@@ -8,16 +8,16 @@ class BytecodeAstNode:
     raise NotImplementedError()
 
 class StatementListNode(BytecodeAstNode):
-  def __init__(self, children, **kwargs):
-    super().__init__(**kwargs)
+  def __init__(self, children):
+    super().__init__()
     self.children = children
 
   def flat_children(self):
     yield from self.children
 
 class StatementNode(BytecodeAstNode):
-  def __init__(self, expr_node, store_nodes, **kwargs):
-    super().__init__(**kwargs)
+  def __init__(self, expr_node, store_nodes):
+    super().__init__()
     self.expr_node = expr_node
     self.store_nodes = store_nodes
 
@@ -26,10 +26,9 @@ class StatementNode(BytecodeAstNode):
     for instructions in self.store_nodes:
       yield from instructions
 
-
 class ExpressionNode(BytecodeAstNode):
-  def __init__(self, children, **kwargs):
-    super().__init__(**kwargs)
+  def __init__(self, children):
+    super().__init__()
     self.children = children
 
   def num_outputs_on_stack(self):
@@ -39,8 +38,8 @@ class ExpressionNode(BytecodeAstNode):
     yield from self.children
 
 class InstructionNodeBase(BytecodeAstNode):
-  def __init__(self, instruction, **kwargs):
-    super().__init__(**kwargs)
+  def __init__(self, instruction):
+    super().__init__()
     self.instruction = instruction
 
   def flat_children(self):
