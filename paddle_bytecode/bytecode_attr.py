@@ -24,3 +24,16 @@ class BytecodeAttr:
         node2attr[node] = BytecodeAttr()
       return node2attr[node]
     return getter
+
+  @staticmethod
+  def make_gettable_and_mutable(node2ctx: dict = None):
+    node2ctx = {} if node2ctx is None else node2ctx
+    def gettable(node):
+      assert node in node2ctx, node
+      return node2ctx[node]
+    def mutable(node):
+      if node not in node2ctx:
+        node2ctx[node] = BytecodeAttr()
+      return node2ctx[node]
+    return gettable, mutable
+

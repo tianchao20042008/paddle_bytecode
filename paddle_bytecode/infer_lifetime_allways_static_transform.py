@@ -34,13 +34,12 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
                is_procedure_static_convertible: Callable[["BytecodeAstNode"], List[bool]]):
     self.mut_attr = mut_attr
     self.is_procedure_static_convertible = is_procedure_static_convertible
-    self.var2is_allways_static_from_now_on = {}
+    self.var2is_allways_static_from_now_on: Dict[str, List[bool]] = {}
 
-  @property
-  def is_var_allways_static_from_now_on(self, ast_node: "BytecodeAstNode", default_val: bool) -> bool:
+  def is_var_allways_static_from_now_on(self, var_name: str, default_val: List[bool]) -> List[bool]:
     bool_map = self.var2is_allways_static_from_now_on
-    if ast_node in bool_map:
-      return bool_map[ast_node]
+    if var_name in bool_map:
+      return bool_map[var_name]
     else: 
       return default_val
 
@@ -174,13 +173,13 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction STORE_FAST: Stores TOS into the local co_varnames[var_num]
     assert len(store_nodes) == 1
     varname = store_nodes[-1].instruction.argval
-    is_allways_static_from_now_on = self.is_var_allways_static_from_now_on(varname, default_val=True)
+    is_allways_static_from_now_on = self.is_var_allways_static_from_now_on(varname, default_val=(True,))
     # Given `x = x + 1`, the left `x` and right `x` will be bound to different value:
     # Here we are in reversed order. we must clear the information of the left `x` before
     # processing the right `x`.
     del self.var2is_allways_static_from_now_on[varname]
     # The rvalue are regarded as results of STORE_FAST even though actually no results for STORE_FAST.
-    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = (is_allways_static_from_now_on,)
+    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = is_allways_static_from_now_on
     return is_allways_static_from_now_on
 
   def DELETE_FAST(self, store_nodes):
@@ -196,13 +195,16 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     if not is_procedure_static_convertible:
       # Touching dynamic python code makes all variable non-static.
       for key, _ in self.var2is_allways_static_from_now_on.items():
-        self.var2is_allways_static_from_now_on[key] = False
+        self.var2is_allways_static_from_now_on[key] = (False,)
     reversed_children = ast_node.children[::-1]
     for child in reversed_children:
       self.infer(child, consumed_by_static=(is_procedure_static_convertible,))
-    self.mut_attr(ast_node).is_result_allways_static_from_now_on = consumed_by_static
+    self.mut_attr(ast_node).is_result_allways_static_from_now_on = (
+      is_procedure_static_convertible and consumed_by_static[0],
+    )
 
   def InstructionNode(self, ast_node, consumed_by_static):
+    assert type(consumed_by_static) is tuple
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = consumed_by_static
 
   def LOAD_CONST(self, ast_node, consumed_by_static):
@@ -211,8 +213,8 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
   def LOAD_FAST(self, ast_node, consumed_by_static):
     # Instruction LOAD_FAST: Pushes a reference to the local co_varnames[var_num] onto the stack.
     varname = ast_node.instruction.argval
-    is_allways_static_from_now_on = self.is_var_allways_static_from_now_on(varname, default_val=True)
-    is_allways_static_from_now_on = consumed_by_static and is_allways_static_from_now_on
+    is_allways_static_from_now_on = self.is_var_allways_static_from_now_on(varname, default_val=(True,))
+    is_allways_static_from_now_on = (consumed_by_static[0] and is_allways_static_from_now_on[0],)
     self.var2is_allways_static_from_now_on[varname] = is_allways_static_from_now_on
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = is_allways_static_from_now_on
 
@@ -225,7 +227,9 @@ class InferLifetimeAllwaysStaticByIsAllwaysStaticFromNowOnTransform:
     self.var2lifetime_allways_static = {}
 
   def infer(self, ast_node):
-    self.mut_attr(ast_node).lifetime_allways_static = self.is_allways_static_from_now_on(ast_node)
+    is_allways_static_from_now_on = self.is_allways_static_from_now_on(ast_node)
+    assert type(is_allways_static_from_now_on) is tuple, type(is_allways_static_from_now_on)
+    self.mut_attr(ast_node).lifetime_allways_static = is_allways_static_from_now_on
     if hasattr(self, type(ast_node).__name__):
       getattr(self, type(ast_node).__name__)(ast_node)
     for child in ast_node.flat_children():
@@ -244,9 +248,10 @@ class InferLifetimeAllwaysStaticByIsAllwaysStaticFromNowOnTransform:
     mut_attr = self.mut_attr(ast_node)
     varname = ast_node.instruction.argval
     if varname in self.var2lifetime_allways_static:
-      mut_attr.lifetime_allways_static = (
-        mut_attr.lifetime_allways_static and self.var2lifetime_allways_static[varname]
+      lifetime_allways_static = (
+        mut_attr.lifetime_allways_static[0] and self.var2lifetime_allways_static[varname][0],
       )
+      mut_attr.lifetime_allways_static = lifetime_allways_static
 
 class InferLifetimeAllwaysStaticTransform:
   def __init__(self,
