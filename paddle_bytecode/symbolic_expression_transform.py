@@ -1,13 +1,13 @@
 from typing import Dict, Callable
 from . import bytecode_ast
 
-class SymbolicExpressionInterpreter:
+class SymbolicExpressionTransform:
 
   def __init__(self,
                builtin_funcs: Dict[str, Callable[["BytecodeAstNode", "BytecodeAttr"], None]]):
     self.builtin_funcs = builtin_funcs
 
-  def interpret(self, ast_node):
+  def __call__(self, ast_node):
     ast_cls = type(ast_node)
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
@@ -19,11 +19,11 @@ class SymbolicExpressionInterpreter:
 
   def intepret_flat_children(self, ast_node):
     for child in ast_node.flat_children():
-      self.interpret(child)
+      self(child)
 
   def ExpressionNode(self, ast_node):
     for child in ast_node.children:
-      self.interpret(child)
+      self(child)
     if not isinstance(ast_node.children[0], bytecode_ast.InstructionNodeBase):
       return
     if not isinstance(ast_node.children[-1], bytecode_ast.InstructionNodeBase):

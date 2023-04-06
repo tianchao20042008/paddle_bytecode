@@ -8,7 +8,7 @@ from paddle_bytecode.infer_attr_transform import InferAttrTransform
 from paddle_bytecode.dump_transform import DumpTransform
 from paddle_bytecode.get_instructions_transform import GetInstructionsTransform
 from paddle_bytecode.get_leaf_ast_nodes_transform import GetLeafAstNodesTransform
-from paddle_bytecode.symbolic_expression_interpreter import SymbolicExpressionInterpreter
+from paddle_bytecode.symbolic_expression_transform import SymbolicExpressionTransform
 import paddle_bytecode.mock_is_procedure_static_convertible_transform as mock
 
 
@@ -39,8 +39,8 @@ class TestInferAttr(unittest.TestCase):
       is_result_static_convertible
     )
     infer_attr.infer(ast_node)
-    symblic_interp = SymbolicExpressionInterpreter(builtin_funcs)
-    symblic_interp.interpret(ast_node)
+    symblic_interp = SymbolicExpressionTransform(builtin_funcs)
+    symblic_interp(ast_node)
 
   def test_check_lifetime_static(self): 
     def foo():
