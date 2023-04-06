@@ -12,7 +12,7 @@ class FlattenExpressionTransform:
     self.attr = attr
     self.generated_ast_nodes = []
 
-  def flatten(self, ast_node):
+  def __call__(self, ast_node):
     ast_cls = type(ast_node)
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
@@ -24,7 +24,7 @@ class FlattenExpressionTransform:
     that = type(self)(self.generate_new_local_varname, self.attr)
     children = []
     for child in ast_node.children: 
-      flattened = that.flatten(child)
+      flattened = that(child)
       children = children + that.generated_ast_nodes
       children.append(flattened)
       that.generated_ast_nodes = []
@@ -39,9 +39,9 @@ class FlattenExpressionTransform:
     )
     get_or_replace = self.generate_local_var_for_expr if expr_in_store_nodes else lambda x:x
     return type(ast_node)(
-      get_or_replace(self.flatten(ast_node.expr_node)),
+      get_or_replace(self(ast_node.expr_node)),
       list([
-        tuple(get_or_replace(self.flatten(instr)) for instr in instrs)
+        tuple(get_or_replace(self(instr)) for instr in instrs)
           for instrs in ast_node.store_nodes
       ])
     )
@@ -70,7 +70,7 @@ class FlattenExpressionTransform:
         children_not_replace[i] = not_replace
       return children_not_replace
     def flatten_and_try_replace(child, not_replace):
-      flattend_node = self.flatten(child)
+      flattend_node = self(child)
       if not_replace:
         return flattend_node
       else:

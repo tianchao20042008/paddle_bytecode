@@ -33,7 +33,7 @@ class TestFlatten(unittest.TestCase):
       counter += 1
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr.flatten(ast_node1)
+    ast_node2 = flatten_expr(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -59,7 +59,7 @@ class TestFlatten(unittest.TestCase):
       counter += 1
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr.flatten(ast_node1)
+    ast_node2 = flatten_expr(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -92,7 +92,7 @@ class TestFlatten(unittest.TestCase):
       counter += 1
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr.flatten(ast_node1)
+    ast_node2 = flatten_expr(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -120,7 +120,7 @@ class TestFlatten(unittest.TestCase):
     )
     infer_attr.infer(ast_node)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    return flatten_expr.flatten(ast_node)
+    return flatten_expr(ast_node)
 
   def get_dynamic_procedure_flattened_and_expected(
         self, origin_func, expected_func, builtin_dynamic_funcs, local_var_prefix, local_var_seq_init):
