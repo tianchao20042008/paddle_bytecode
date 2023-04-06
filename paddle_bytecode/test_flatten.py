@@ -26,7 +26,7 @@ class TestFlatten(unittest.TestCase):
       is_procedure_static_convertible,
       is_result_static_convertible
     )
-    infer_attr.infer(ast_node1)
+    infer_attr(ast_node1)
     counter = 0
     def generate_new_local_varname():
       nonlocal counter
@@ -52,7 +52,7 @@ class TestFlatten(unittest.TestCase):
       is_procedure_static_convertible,
       is_result_static_convertible
     )
-    infer_attr.infer(ast_node1)
+    infer_attr(ast_node1)
     counter = 0
     def generate_new_local_varname():
       nonlocal counter
@@ -85,7 +85,7 @@ class TestFlatten(unittest.TestCase):
       is_procedure_static_convertible,
       is_result_static_convertible
     )
-    infer_attr.infer(ast_node1)
+    infer_attr(ast_node1)
     counter = 0
     def generate_new_local_varname():
       nonlocal counter
@@ -118,7 +118,7 @@ class TestFlatten(unittest.TestCase):
       is_procedure_static_convertible,
       is_result_static_convertible
     )
-    infer_attr.infer(ast_node)
+    infer_attr(ast_node)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
     return flatten_expr(ast_node)
 

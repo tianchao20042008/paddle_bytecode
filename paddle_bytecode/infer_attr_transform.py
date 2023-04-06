@@ -11,7 +11,7 @@ class InferAttrTransform:
     self.is_procedure_static_convertible = is_procedure_static_convertible
     self.is_result_static_convertible = is_result_static_convertible
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     infer_static_convertible = InferStaticConvertibleTransform(
       self.mut_attr,
       self.is_procedure_static_convertible,

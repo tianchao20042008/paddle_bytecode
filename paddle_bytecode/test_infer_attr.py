@@ -38,7 +38,7 @@ class TestInferAttr(unittest.TestCase):
       is_procedure_static_convertible,
       is_result_static_convertible
     )
-    infer_attr.infer(ast_node)
+    infer_attr(ast_node)
     symblic_interp = SymbolicExpressionTransform(builtin_funcs)
     symblic_interp(ast_node)
 
