@@ -97,7 +97,7 @@ class TestFlatten(unittest.TestCase):
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node2))
 
   def make_getter_generate_new_local_varname(self, prefix, init=0):
-    counter = init
+    counter = init - 1 # `counter++` will be used later.
     def generate_new_local_varname():
       nonlocal counter
       counter += 1
@@ -155,7 +155,7 @@ class TestFlatten(unittest.TestCase):
       expected_func=foo1,
       builtin_dynamic_funcs={"bar"},
       local_var_prefix="tmp",
-      local_var_seq_init=0
+      local_var_seq_init=1
     )
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
@@ -173,7 +173,7 @@ class TestFlatten(unittest.TestCase):
       expected_func=foo1,
       builtin_dynamic_funcs={"bar"},
       local_var_prefix="tmp",
-      local_var_seq_init=0
+      local_var_seq_init=1
     )
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
@@ -193,7 +193,7 @@ class TestFlatten(unittest.TestCase):
       expected_func=expected_func,
       builtin_dynamic_funcs={"bar"},
       local_var_prefix="tmp",
-      local_var_seq_init=0
+      local_var_seq_init=1
     )
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
@@ -209,7 +209,23 @@ class TestFlatten(unittest.TestCase):
       expected_func=expected_func,
       builtin_dynamic_funcs={"bar"},
       local_var_prefix="tmp",
-      local_var_seq_init=0
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+
+  def test_nested_static_expression(self):
+    def origin_func(x):
+      x = static_bar(static_bar())
+      return x
+    def expected_func(x):
+      x = static_bar(static_bar())
+      return x
+    flattened_ast_node, expected_ast_node = self.get_dynamic_procedure_flattened_and_expected(
+      origin_func=origin_func,
+      expected_func=expected_func,
+      builtin_dynamic_funcs={"bar"},
+      local_var_prefix="tmp",
+      local_var_seq_init=1
     )
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
