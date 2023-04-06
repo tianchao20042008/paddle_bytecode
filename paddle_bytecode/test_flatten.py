@@ -5,7 +5,7 @@ from paddle_bytecode import bytecode_attr
 from paddle_bytecode.infer_attr_transform import InferAttrTransform
 from paddle_bytecode.clone_transform import CloneTransform
 from paddle_bytecode.flatten_expression_transform import FlattenExpressionTransform
-from paddle_bytecode.diff_opname_and_argval_interpreter import DiffOpnameAndArgvalInterpreter
+from paddle_bytecode.diff_opname_and_argval_transform import DiffOpnameAndArgvalTransform
 from paddle_bytecode.dump_transform import DumpTransform
 from paddle_bytecode.get_instructions_transform import GetInstructionsTransform
 import paddle_bytecode.mock_is_procedure_static_convertible_transform as mock
@@ -34,8 +34,8 @@ class TestFlatten(unittest.TestCase):
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
     ast_node2 = flatten_expr.flatten(ast_node1)
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node1))
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node2))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
   def test_function_with_return(self): 
     def foo():
@@ -60,8 +60,8 @@ class TestFlatten(unittest.TestCase):
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
     ast_node2 = flatten_expr.flatten(ast_node1)
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node1))
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node2))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
   def test_flat_dynamic_function_assign(self): 
     def foo():
@@ -93,8 +93,8 @@ class TestFlatten(unittest.TestCase):
       return "tmp" + str(counter)
     flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
     ast_node2 = flatten_expr.flatten(ast_node1)
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node1))
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(ast_node0, ast_node2))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
   def make_getter_generate_new_local_varname(self, prefix, init=0):
     counter = init - 1 # `counter++` will be used later.
@@ -157,7 +157,7 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_mixed_dynamic_expression_assign(self):
     def foo0(x):
@@ -175,7 +175,7 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_static_dynamic_interleave_expression_assign(self):
     def origin_func(x):
@@ -195,7 +195,7 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_nested_dynamic_expression(self):
     def origin_func(x):
@@ -211,7 +211,7 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_nested_static_expression(self):
     def origin_func(x):
@@ -227,7 +227,7 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def _test_unpack_assign(self):
     def origin_func(x):
@@ -251,7 +251,7 @@ class TestFlatten(unittest.TestCase):
     print("----"*10)
     pprint(DumpTransform().dump(flattened_ast_node))
     print("----"*10)
-    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
 if __name__ == '__main__':
     unittest.main()
