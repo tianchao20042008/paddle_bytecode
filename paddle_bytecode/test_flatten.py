@@ -15,7 +15,7 @@ class TestFlatten(unittest.TestCase):
     def foo():
       pass
     ast_node0 = convert_to_bytecode_ast(list(dis.get_instructions(foo)))
-    ast_node1 = CloneTransform().clone(ast_node0) 
+    ast_node1 = CloneTransform()(ast_node0) 
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
     def is_procedure_static_convertible(ast_node):
       return True
@@ -41,7 +41,7 @@ class TestFlatten(unittest.TestCase):
     def foo():
       return 65536
     ast_node0 = convert_to_bytecode_ast(list(dis.get_instructions(foo)))
-    ast_node1 = CloneTransform().clone(ast_node0) 
+    ast_node1 = CloneTransform()(ast_node0) 
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
     def is_procedure_static_convertible(ast_node):
       return True
@@ -68,7 +68,7 @@ class TestFlatten(unittest.TestCase):
       x = bar()
       return x
     ast_node0 = convert_to_bytecode_ast(list(dis.get_instructions(foo)))
-    ast_node1 = CloneTransform().clone(ast_node0) 
+    ast_node1 = CloneTransform()(ast_node0) 
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
     def is_procedure_static_convertible(ast_node):
       return not (
