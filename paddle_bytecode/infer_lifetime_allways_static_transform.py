@@ -177,7 +177,8 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Given `x = x + 1`, the left `x` and right `x` will be bound to different value:
     # Here we are in reversed order. we must clear the information of the left `x` before
     # processing the right `x`.
-    del self.var2is_allways_static_from_now_on[varname]
+    if varname in self.var2is_allways_static_from_now_on:
+      del self.var2is_allways_static_from_now_on[varname]
     # The rvalue are regarded as results of STORE_FAST even though actually no results for STORE_FAST.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = is_allways_static_from_now_on
     return is_allways_static_from_now_on

@@ -12,7 +12,7 @@ from paddle_bytecode.symbolic_expression_interpreter import SymbolicExpressionIn
 import paddle_bytecode.mock_is_procedure_static_convertible_transform as mock
 
 
-class TestInferLifetime(unittest.TestCase):
+class TestInferAttr(unittest.TestCase):
   def check_lifetime(self,
                      f,
                      dynamic_func_names: Set[str],
@@ -59,6 +59,61 @@ class TestInferLifetime(unittest.TestCase):
       check_lifetime_static(bar())
     def check_lifetime_static(ast_node, attr):
       self.assertEqual(attr(ast_node).lifetime_allways_static, (False,))
+    self.check_lifetime(
+      foo,
+      dynamic_func_names={"bar"},
+      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+    )
+
+  def test_check_lifetime_dynamic_nested(self): 
+    def foo():
+      x = bar(check_lifetime_static(bar()))
+    def check_lifetime_static(ast_node, attr):
+      self.assertEqual(attr(ast_node).lifetime_allways_static, (False,))
+    self.check_lifetime(
+      foo,
+      dynamic_func_names={"bar"},
+      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+    )
+
+  def test_check_dynamic_then_static(self): 
+    def foo():
+      x = check_lifetime_static(bar()) + 1
+    def check_lifetime_static(ast_node, attr):
+      self.assertEqual(attr(ast_node).lifetime_allways_static, (False,))
+    self.check_lifetime(
+      foo,
+      dynamic_func_names={"bar"},
+      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+    )
+
+  def test_check_dynamic_then_static_math_op(self): 
+    def foo():
+      x = check_lifetime_static(bar() + 1)
+    def check_lifetime_static(ast_node, attr):
+      self.assertEqual(attr(ast_node).lifetime_allways_static, (True,))
+    self.check_lifetime(
+      foo,
+      dynamic_func_names={"bar"},
+      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+    )
+
+  def test_is_procedure_static_convertible_nested_dynamic_then_static(self): 
+    def foo():
+      x = check_lifetime_static(static_func(bar())) + 1
+    def check_lifetime_static(ast_node, attr):
+      self.assertEqual(attr(ast_node).is_procedure_static_convertible, True)
+    self.check_lifetime(
+      foo,
+      dynamic_func_names={"bar"},
+      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+    )
+
+  def test_is_procedure_static_convertible_nested_static_then_dynamic(self): 
+    def foo():
+      x = check_lifetime_static(bar(static_func())) + 1
+    def check_lifetime_static(ast_node, attr):
+      self.assertEqual(attr(ast_node).is_procedure_static_convertible, False)
     self.check_lifetime(
       foo,
       dynamic_func_names={"bar"},

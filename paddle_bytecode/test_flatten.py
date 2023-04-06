@@ -8,6 +8,7 @@ from paddle_bytecode.flatten_expression_transform import FlattenExpressionTransf
 from paddle_bytecode.diff_opname_and_argval_interpreter import DiffOpnameAndArgvalInterpreter
 from paddle_bytecode.dump_transform import DumpTransform
 from paddle_bytecode.get_instructions_transform import GetInstructionsTransform
+import paddle_bytecode.mock_is_procedure_static_convertible_transform as mock
 
 class TestFlatten(unittest.TestCase):
   def test_function_without_return(self): 
@@ -76,6 +77,9 @@ class TestFlatten(unittest.TestCase):
       )
     def is_result_static_convertible(ast_node):
       return (True,) * ast_node.num_outputs_on_stack()
+    is_procedure_static_convertible = (
+      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).mock(ast_node1)
+    )
     infer_attr = InferAttrTransform(
       mut_attr,
       is_procedure_static_convertible,
@@ -106,6 +110,9 @@ class TestFlatten(unittest.TestCase):
                              generate_new_local_varname):
     ast_node = convert_to_bytecode_ast(list(dis.get_instructions(f)))
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
+    is_procedure_static_convertible = (
+      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).mock(ast_node)
+    )
     infer_attr = InferAttrTransform(
       mut_attr,
       is_procedure_static_convertible,
@@ -204,9 +211,6 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=0
     )
-    from pprint import pprint
-    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform().get_instructions(flattened_ast_node)))
-    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform().get_instructions(expected_ast_node)))
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
 if __name__ == '__main__':

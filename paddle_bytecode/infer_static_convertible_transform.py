@@ -46,13 +46,11 @@ class InferIsProcedureStaticConvertibleTransform:
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
   def ExpressionNode(self, ast_node):
-    is_procedure_static_convertible = True
     for child in ast_node.children:
       self.infer(child)
-      is_procedure_static_convertible = (
-        is_procedure_static_convertible and self.mut_attr(child).is_procedure_static_convertible
-      )
-    self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
+    self.mut_attr(ast_node).is_procedure_static_convertible = (
+      self.mut_attr(ast_node.children[-1]).is_procedure_static_convertible
+    )
 
   def InstructionNode(self, ast_node):
     self.mut_attr(ast_node).is_procedure_static_convertible = self.is_procedure_static_convertible(ast_node)
