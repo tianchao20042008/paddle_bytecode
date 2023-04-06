@@ -22,7 +22,7 @@ class MockIsProcedureStaticConvertibleTransform:
     return new_get_is_procedure_static_convertible, set_is_procedure_static_convertible
 
 
-  def mock(self, ast_node):
+  def __call__(self, ast_node):
     ast_cls = type(ast_node)
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
@@ -35,11 +35,11 @@ class MockIsProcedureStaticConvertibleTransform:
 
   def mock_flat_children(self, ast_node):
     for child in ast_node.flat_children():
-      self.mock(child)
+      self(child)
 
   def ExpressionNode(self, ast_node):
     for child in ast_node.children:
-      self.mock(child)
+      self(child)
     if not isinstance(ast_node.children[0], bytecode_ast.InstructionNodeBase):
       return
     if not isinstance(ast_node.children[-1], bytecode_ast.InstructionNodeBase):

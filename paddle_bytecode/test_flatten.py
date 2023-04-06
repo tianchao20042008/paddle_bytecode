@@ -78,7 +78,7 @@ class TestFlatten(unittest.TestCase):
     def is_result_static_convertible(ast_node):
       return (True,) * ast_node.num_outputs_on_stack()
     is_procedure_static_convertible = (
-      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).mock(ast_node1)
+      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible)(ast_node1)
     )
     infer_attr = InferAttrTransform(
       mut_attr,
@@ -111,7 +111,7 @@ class TestFlatten(unittest.TestCase):
     ast_node = convert_to_bytecode_ast(list(dis.get_instructions(f)))
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
     is_procedure_static_convertible = (
-      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).mock(ast_node)
+      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible)(ast_node)
     )
     infer_attr = InferAttrTransform(
       mut_attr,

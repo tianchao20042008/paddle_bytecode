@@ -29,7 +29,7 @@ class TestInferAttr(unittest.TestCase):
         return not (ast_node.instruction.argval in dynamic_func_names)
       return True
     is_procedure_static_convertible = (
-      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible).mock(ast_node)
+      mock.MockIsProcedureStaticConvertibleTransform(is_procedure_static_convertible)(ast_node)
     )
     def is_result_static_convertible(ast_node):
       return (True,) * ast_node.num_outputs_on_stack()
