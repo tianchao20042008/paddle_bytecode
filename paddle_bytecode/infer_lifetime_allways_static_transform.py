@@ -43,13 +43,13 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     else: 
       return default_val
 
-  def infer(self, ast_node, consumed_by_static: List[bool] =(True,)):
+  def __call__(self, ast_node, consumed_by_static: List[bool] =(True,)):
     return getattr(self, type(ast_node).__name__)(ast_node, consumed_by_static)
     
   def StatementListNode(self, ast_node, consumed_by_static):
     reversed_children = ast_node.children[::-1]
     for child in reversed_children:
-      self.infer(child, consumed_by_static=(True,))
+      self(child, consumed_by_static=(True,))
     # no results for StatementListNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
@@ -57,7 +57,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Given python code `(*lvalue) = rvalue_expr`:
     # consumed_by_static : List[bool] = IsResultAllwaysStaticFromNowOn(*lvalue) # pseudo code
     consumed_by_static = tuple(map(self.infer_lvalue_in_store_nodes, ast_node.store_nodes[::-1]))
-    self.infer(ast_node.expr_node, consumed_by_static)
+    self(ast_node.expr_node, consumed_by_static)
     # no results for StatementNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
@@ -90,8 +90,8 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
     # the execution order is store_nodes[1] first then store_nodes[0]
     # here we in reversed order.
-    self.infer(store_nodes[0], (is_procedure_static_convertible,))
-    self.infer(store_nodes[1], (is_procedure_static_convertible,))
+    self(store_nodes[0], (is_procedure_static_convertible,))
+    self(store_nodes[1], (is_procedure_static_convertible,))
     # no results for STORE_SUBSCR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
     return is_procedure_static_convertible
@@ -100,7 +100,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction DELETE_SUBSCR: Implements del TOS1[TOS]
     assert len(store_nodes) == 2
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    self.infer(store_nodes[0], (is_procedure_static_convertible,))
+    self(store_nodes[0], (is_procedure_static_convertible,))
     # no results for DELETE_SUBSCR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
     return is_procedure_static_convertible
@@ -139,7 +139,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction STORE_ATTR: Implements TOS.name = TOS1
     assert len(store_nodes) == 2
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    self.infer(store_nodes[0], (is_procedure_static_convertible,))
+    self(store_nodes[0], (is_procedure_static_convertible,))
 
     # no results for STORE_ATTR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
@@ -195,7 +195,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
         self.var2is_allways_static_from_now_on[key] = (False,)
     reversed_children = ast_node.children[::-1]
     for child in reversed_children:
-      self.infer(child, consumed_by_static=(is_procedure_static_convertible,))
+      self(child, consumed_by_static=(is_procedure_static_convertible,))
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = (
       is_procedure_static_convertible and consumed_by_static[0],
     )
@@ -223,14 +223,14 @@ class InferLifetimeAllwaysStaticByIsAllwaysStaticFromNowOnTransform:
     self.is_allways_static_from_now_on = is_allways_static_from_now_on
     self.var2lifetime_allways_static = {}
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     is_allways_static_from_now_on = self.is_allways_static_from_now_on(ast_node)
     assert type(is_allways_static_from_now_on) is tuple, type(is_allways_static_from_now_on)
     self.mut_attr(ast_node).lifetime_allways_static = is_allways_static_from_now_on
     if hasattr(self, type(ast_node).__name__):
       getattr(self, type(ast_node).__name__)(ast_node)
     for child in ast_node.flat_children():
-      self.infer(child)
+      self(child)
 
   def STORE_GLOBAL(self, ast_node):
     self.STORE_FAST(ast_node)
@@ -257,14 +257,14 @@ class InferLifetimeAllwaysStaticTransform:
     self.mut_attr = mut_attr
     self.is_procedure_static_convertible = is_procedure_static_convertible
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     # get_infer_ctx and mut_infer_ctx use the same dict.
     get_infer_ctx, mut_infer_ctx = InferCtx.make_gettable_and_mutable()
     backward_inferer = InferIsResultAllwaysStaticFromNowOnTransform(
       mut_infer_ctx, self.is_procedure_static_convertible
     )
-    backward_inferer.infer(ast_node)
+    backward_inferer(ast_node)
     forward_inferer = InferLifetimeAllwaysStaticByIsAllwaysStaticFromNowOnTransform(
      self.mut_attr, lambda ast_node: get_infer_ctx(ast_node).is_result_allways_static_from_now_on
     )
-    forward_inferer.infer(ast_node)
+    forward_inferer(ast_node)

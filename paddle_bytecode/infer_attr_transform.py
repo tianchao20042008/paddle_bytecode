@@ -17,9 +17,9 @@ class InferAttrTransform:
       self.is_procedure_static_convertible,
       self.is_result_static_convertible,
     )
-    infer_static_convertible.infer(ast_node)
+    infer_static_convertible(ast_node)
     infer_lifetime = InferLifetimeAllwaysStaticTransform(
       self.mut_attr,
       self.is_procedure_static_convertible,
     )
-    infer_lifetime.infer(ast_node)
+    infer_lifetime(ast_node)

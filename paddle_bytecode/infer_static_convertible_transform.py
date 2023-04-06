@@ -11,34 +11,34 @@ class InferIsProcedureStaticConvertibleTransform:
     self.is_procedure_static_convertible = is_procedure_static_convertible
     self.mut_attr = mut_attr
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     return getattr(self, type(ast_node).__name__)(ast_node)
 
   def StatementListNode(self, ast_node):
     is_procedure_static_convertible = True
     for child in ast_node.children:
-      self.infer(child)
+      self(child)
       is_procedure_static_convertible = (
         is_procedure_static_convertible and self.mut_attr(child).is_procedure_static_convertible
       )
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
   def StatementNode(self, ast_node):
-    self.infer(ast_node.expr_node)
+    self(ast_node.expr_node)
     for store_node_tuple in ast_node.store_nodes:
       if len(store_node_tuple) == 1:
         # example0: `a = foo()`
         self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = True
       elif len(store_node_tuple) == 2:
         # example0: `a.bar = foo()`
-        self.infer(store_node_tuple[0])
+        self(store_node_tuple[0])
         self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = (
           self.is_procedure_static_convertible(store_node_tuple[-1])
         )
       elif len(store_node_tuple) == 3:
         # example0: `a[bar()] = foo()`
-        self.infer(store_node_tuple[0])
-        self.infer(store_node_tuple[1])
+        self(store_node_tuple[0])
+        self(store_node_tuple[1])
         self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = (
           self.is_procedure_static_convertible(store_node_tuple[-1])
         )
@@ -48,7 +48,7 @@ class InferIsProcedureStaticConvertibleTransform:
 
   def ExpressionNode(self, ast_node):
     for child in ast_node.children:
-      self.infer(child)
+      self(child)
     self.mut_attr(ast_node).is_procedure_static_convertible = (
       self.mut_attr(ast_node.children[-1]).is_procedure_static_convertible
     )
@@ -74,17 +74,17 @@ class InferIsResultStaticConvertibleTransform:
     self.mut_attr = mut_attr
     self.local_name2is_result_static_convertible = {}
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     return getattr(self, type(ast_node).__name__)(ast_node)
 
   def StatementListNode(self, ast_node):
     for child in ast_node.children:
-      self.infer(child)
+      self(child)
     # StatementList has no results on stack.
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
   def StatementNode(self, ast_node):
-    self.infer(ast_node.expr_node)
+    self(ast_node.expr_node)
     for i, store_node_tuple in enumerate(ast_node.store_nodes):
       if len(store_node_tuple) == 1:
         # example0: `a = foo()`
@@ -98,13 +98,13 @@ class InferIsResultStaticConvertibleTransform:
           )
       elif len(store_node_tuple) == 2:
         # example0: `a.bar = foo()`
-        self.infer(store_node_tuple[0])
+        self(store_node_tuple[0])
         # store_node_tuple[-1] has no results on stack.
         self.mut_attr(store_node_tuple[-1]).is_result_static_convertible = ()
       elif len(store_node_tuple) == 3:
         # example0: `a[bar()] = foo()`
-        self.infer(store_node_tuple[0])
-        self.infer(store_node_tuple[1])
+        self(store_node_tuple[0])
+        self(store_node_tuple[1])
         # store_node_tuple[1] has no results on stack.
         self.mut_attr(store_node_tuple[-1]).is_result_static_convertible = ()
       else:
@@ -115,7 +115,7 @@ class InferIsResultStaticConvertibleTransform:
   def ExpressionNode(self, ast_node):
     last_child = None
     for child in ast_node.children:
-      self.infer(child)
+      self(child)
       last_child = child
     # expression is in reversed Polish notation.
     self.mut_attr(ast_node).is_result_static_convertible = self.mut_attr(last_child).is_result_static_convertible
@@ -146,14 +146,14 @@ class InferStaticConvertibleTransform:
     self.is_procedure_static_convertible = is_procedure_static_convertible
     self.is_result_static_convertible = is_result_static_convertible
 
-  def infer(self, ast_node):
+  def __call__(self, ast_node):
     infer_procedure = InferIsProcedureStaticConvertibleTransform(
       self.is_procedure_static_convertible,
       self.mut_attr,
     )
-    infer_procedure.infer(ast_node)
+    infer_procedure(ast_node)
     infer_result = InferIsResultStaticConvertibleTransform(
       self.is_result_static_convertible,
       self.mut_attr,
     )
-    infer_result.infer(ast_node)
+    infer_result(ast_node)
