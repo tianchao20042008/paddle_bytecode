@@ -5,7 +5,7 @@ class UnwrapFuncByNameTransform:
   def __init__(self, func_name):
     self.func_name = func_name
 
-  def unwrap(self, ast_node):
+  def __call__(self, ast_node):
     ast_cls = type(ast_node)
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
@@ -13,12 +13,12 @@ class UnwrapFuncByNameTransform:
     return getattr(self, ast_cls.__name__)(ast_node)
 
   def StatementListNode(self, ast_node):
-    return type(ast_node)([self.unwrap(child) for child in ast_node.children])
+    return type(ast_node)([self(child) for child in ast_node.children])
 
   def StatementNode(self, ast_node):
     return type(ast_node)(
-      self.unwrap(ast_node.expr_node),
-      list([tuple(self.unwrap(instr) for instr in instrs) for instrs in ast_node.store_nodes])
+      self(ast_node.expr_node),
+      list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes])
     )
 
   def ExpressionNode(self, ast_node):
@@ -44,10 +44,10 @@ class UnwrapFuncByNameTransform:
     elif children[0].instruction.argval != self.func_name:
       return self.NaiveProcessExpressionNode(ast_node)
     else:
-      return self.unwrap(children[1])
+      return self(children[1])
 
   def NaiveProcessExpressionNode(self, ast_node):
-      return type(ast_node)(tuple(self.unwrap(child) for child in ast_node.children))
+      return type(ast_node)(tuple(self(child) for child in ast_node.children))
 
   def InstructionNodeBase(self, ast_node):
     return type(ast_node)(ast_node.instruction)

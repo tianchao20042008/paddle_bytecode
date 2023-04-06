@@ -249,7 +249,7 @@ class TestFlatten(unittest.TestCase):
     import dis
     print("\n")
     print("----"*10)
-    pprint(DumpTransform().dump(flattened_ast_node))
+    pprint(DumpTransform()(flattened_ast_node))
     print("----"*10)
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
