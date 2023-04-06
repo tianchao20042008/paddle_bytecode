@@ -4,7 +4,7 @@ from paddle_bytecode.convert_to_bytecode_ast import convert_to_bytecode_ast
 from paddle_bytecode import bytecode_attr
 from paddle_bytecode.infer_attr_transform import InferAttrTransform
 from paddle_bytecode.clone_transform import CloneTransform
-from paddle_bytecode.flatten_expression_transform import FlattenExpressionTransform
+from paddle_bytecode.flatten_right_value_transform import FlattenRightValueTransform
 from paddle_bytecode.diff_opname_and_argval_transform import DiffOpnameAndArgvalTransform
 from paddle_bytecode.dump_transform import DumpTransform
 from paddle_bytecode.get_instructions_transform import GetInstructionsTransform
@@ -32,8 +32,8 @@ class TestFlatten(unittest.TestCase):
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr(ast_node1)
+    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -58,8 +58,8 @@ class TestFlatten(unittest.TestCase):
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr(ast_node1)
+    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -91,8 +91,8 @@ class TestFlatten(unittest.TestCase):
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    ast_node2 = flatten_expr(ast_node1)
+    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
@@ -119,8 +119,8 @@ class TestFlatten(unittest.TestCase):
       is_result_static_convertible
     )
     infer_attr(ast_node)
-    flatten_expr = FlattenExpressionTransform(generate_new_local_varname, mut_attr)
-    return flatten_expr(ast_node)
+    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    return flatten_rvalue(ast_node)
 
   def get_dynamic_procedure_flattened_and_expected(
         self, origin_func, expected_func, builtin_dynamic_funcs, local_var_prefix, local_var_seq_init):

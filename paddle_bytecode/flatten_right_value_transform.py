@@ -4,7 +4,7 @@ from . import bytecode_ast
 from .instruction import Instruction
 import dis
 
-class FlattenExpressionTransform:
+class FlattenRightValueTransform:
   def __init__(self,
               generate_new_local_varname: Callable[[], str],
               attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
