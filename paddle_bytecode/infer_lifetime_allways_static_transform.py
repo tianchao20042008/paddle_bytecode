@@ -31,7 +31,7 @@ class InferCtx:
 class InferIsResultAllwaysStaticFromNowOnTransform:
   def __init__(self,
                mut_attr: Callable[["BytecodeAstNode"], InferCtx],
-               is_procedure_static_convertible: Callable[["BytecodeAstNode"], List[bool]]):
+               is_procedure_static_convertible: Callable[["BytecodeAstNode"], bool]):
     self.mut_attr = mut_attr
     self.is_procedure_static_convertible = is_procedure_static_convertible
     self.var2is_allways_static_from_now_on: Dict[str, List[bool]] = {}
@@ -88,24 +88,22 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction STORE_SUBSCR: Implements TOS1[TOS] = TOS2.
     assert len(store_nodes) == 3
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    assert len(is_procedure_static_convertible) == 1
     # the execution order is store_nodes[1] first then store_nodes[0]
     # here we in reversed order.
-    self.infer(store_nodes[0], is_procedure_static_convertible)
-    self.infer(store_nodes[1], is_procedure_static_convertible)
+    self.infer(store_nodes[0], (is_procedure_static_convertible,))
+    self.infer(store_nodes[1], (is_procedure_static_convertible,))
     # no results for STORE_SUBSCR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
-    return is_procedure_static_convertible[0]
+    return is_procedure_static_convertible
 
   def DELETE_SUBSCR(self, store_nodes):
     # Instruction DELETE_SUBSCR: Implements del TOS1[TOS]
     assert len(store_nodes) == 2
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    assert len(is_procedure_static_convertible) == 1
-    self.infer(store_nodes[0], is_procedure_static_convertible)
+    self.infer(store_nodes[0], (is_procedure_static_convertible,))
     # no results for DELETE_SUBSCR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
-    return is_procedure_static_convertible[0]
+    return is_procedure_static_convertible
 
   def RETURN_VALUE(self, store_nodes):
     # Instruction RETURN_VALUE: Returns with TOS to the caller of the function.
@@ -141,21 +139,19 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction STORE_ATTR: Implements TOS.name = TOS1
     assert len(store_nodes) == 2
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    assert len(is_procedure_static_convertible) == 1
-    self.infer(store_nodes[0], is_procedure_static_convertible)
+    self.infer(store_nodes[0], (is_procedure_static_convertible,))
 
     # no results for STORE_ATTR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
-    return is_procedure_static_convertible[0]
+    return is_procedure_static_convertible
 
   def DELETE_ATTR(self, store_nodes):
     # Instruction DELETE_ATTR: Implements del TOS.name.
     assert len(store_nodes) == 1
     is_procedure_static_convertible = self.is_procedure_static_convertible(store_nodes[-1])
-    assert len(is_procedure_static_convertible) == 1
     # no results for DELETE_ATTR.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
-    return is_procedure_static_convertible[0]
+    return is_procedure_static_convertible
 
   def STORE_GLOBAL(self, store_nodes):
     # Instruction STORE_GLOBAL: Works as STORE_NAME, but stores the name as a global.
@@ -257,7 +253,7 @@ class InferLifetimeAllwaysStaticByIsAllwaysStaticFromNowOnTransform:
 class InferLifetimeAllwaysStaticTransform:
   def __init__(self,
                mut_attr: Callable[["BytecodeAstNode"], BytecodeAttr],
-               is_procedure_static_convertible: Callable[["BytecodeAstNode"], List[bool]]):
+               is_procedure_static_convertible: Callable[["BytecodeAstNode"], bool]):
     self.mut_attr = mut_attr
     self.is_procedure_static_convertible = is_procedure_static_convertible
 

@@ -33,12 +33,11 @@ def convert_to_statement_node(instructions):
       store_nodes.append((convert_to_instruction_node(store_instructions[0]),))
     elif len(store_instructions) > 1:
       store_node = convert_to_instruction_node(store_instructions[-1])
-      assert store_node.num_inputs_on_stack() == 2, store_instructions[-1]
       assert store_node.num_outputs_on_stack() == 0, store_instructions[-1]
-      store_nodes.append((convert_to_expression_node(store_instructions[:-1]), store_node))
+      store_nodes.append((*convert_to_expression_node_tuple(store_instructions[:-1]), store_node))
     else:
       raise NotImplementedError("store instructions not supported: %s" % store_instructions[-1])
-  return bytecode_ast.StatementNode(convert_to_expression_node(instructions), store_nodes)
+  return bytecode_ast.StatementNode(convert_to_expression_node(instructions), store_nodes[::-1])
 
 def _get_prev_store_instructions(instructions):
   if not instr_stack_util.opcode2is_store_or_delete[instructions[-1].opcode]:
@@ -52,7 +51,7 @@ def _get_prev_store_instructions(instructions):
       return instructions[0:pos], instructions[pos:]
   raise NotImplementedError("dead code")
 
-def convert_to_expression_node(instructions):
+def convert_to_expression_node_tuple(instructions):
   # `symbolic_stack` contains instances of BytecodeAstNode.
   symbolic_stack = []
   for instruction in instructions:
@@ -71,7 +70,11 @@ def convert_to_expression_node(instructions):
       assert num_inputs_on_stack == 0
       expression_children.reverse()
       symbolic_stack.append(bytecode_ast.ExpressionNode(expression_children))
-  assert len(symbolic_stack) == 1
+  return symbolic_stack
+
+def convert_to_expression_node(instructions):
+  symbolic_stack = convert_to_expression_node_tuple(instructions)
+  assert len(symbolic_stack) == 1, symbolic_stack
   return symbolic_stack[0]
 
 def convert_to_instruction_node(instruction):

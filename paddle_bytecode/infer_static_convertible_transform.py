@@ -24,26 +24,27 @@ class InferIsProcedureStaticConvertibleTransform:
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
   def StatementNode(self, ast_node):
-    is_procedure_static_convertible = True
     self.infer(ast_node.expr_node)
-    is_procedure_static_convertible = (
-      is_procedure_static_convertible and self.mut_attr(ast_node.expr_node).is_procedure_static_convertible
-    )
     for store_node_tuple in ast_node.store_nodes:
       if len(store_node_tuple) == 1:
         # example0: `a = foo()`
-        self.mut_attr(store_node_tuple[0]).is_procedure_static_convertible = True
+        self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = True
       elif len(store_node_tuple) == 2:
-        # example0: `a[bar()] = foo()`
-        # example1: `a.bar = foo()`
+        # example0: `a.bar = foo()`
         self.infer(store_node_tuple[0])
-        is_procedure_static_convertible = (
-          is_procedure_static_convertible and self.mut_attr(store_node_tuple[0]).is_procedure_static_convertible
+        self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = (
+          self.is_procedure_static_convertible(store_node_tuple[-1])
         )
-        self.mut_attr(store_node_tuple[1]).is_procedure_static_convertible = True
+      elif len(store_node_tuple) == 3:
+        # example0: `a[bar()] = foo()`
+        self.infer(store_node_tuple[0])
+        self.infer(store_node_tuple[1])
+        self.mut_attr(store_node_tuple[-1]).is_procedure_static_convertible = (
+          self.is_procedure_static_convertible(store_node_tuple[-1])
+        )
       else:
         raise NotImplementedError()
-    self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
+    self.mut_attr(ast_node).is_procedure_static_convertible = True
 
   def ExpressionNode(self, ast_node):
     for child in ast_node.children:
@@ -96,11 +97,16 @@ class InferIsResultStaticConvertibleTransform:
             store_node, self.mut_attr(ast_node.expr_node).is_result_static_convertible[i]
           )
       elif len(store_node_tuple) == 2:
-        # example0: `a[bar()] = foo()`
-        # example1: `a.bar = foo()`
+        # example0: `a.bar = foo()`
         self.infer(store_node_tuple[0])
+        # store_node_tuple[-1] has no results on stack.
+        self.mut_attr(store_node_tuple[-1]).is_result_static_convertible = ()
+      elif len(store_node_tuple) == 3:
+        # example0: `a[bar()] = foo()`
+        self.infer(store_node_tuple[0])
+        self.infer(store_node_tuple[1])
         # store_node_tuple[1] has no results on stack.
-        self.mut_attr(store_node_tuple[1]).is_result_static_convertible = ()
+        self.mut_attr(store_node_tuple[-1]).is_result_static_convertible = ()
       else:
         raise NotImplementedError()
     # Statement has no results on stack.

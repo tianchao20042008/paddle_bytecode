@@ -229,5 +229,29 @@ class TestFlatten(unittest.TestCase):
     )
     self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
 
+  def _test_unpack_assign(self):
+    def origin_func(x):
+      x[bar()], __y__ = (static_bar(), 999)
+      return x
+    def expected_func(x):
+      tmp1 = (static_bar(), 999)
+      tmp2 = bar()
+      x[tmp2], __y__ = tmp1
+      return x
+    flattened_ast_node, expected_ast_node = self.get_dynamic_procedure_flattened_and_expected(
+      origin_func=origin_func,
+      expected_func=expected_func,
+      builtin_dynamic_funcs={"bar"},
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    from pprint import pprint
+    import dis
+    print("\n")
+    print("----"*10)
+    pprint(DumpTransform().dump(flattened_ast_node))
+    print("----"*10)
+    self.assertTrue(DiffOpnameAndArgvalInterpreter().diff(flattened_ast_node, expected_ast_node))
+
 if __name__ == '__main__':
     unittest.main()
