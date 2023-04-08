@@ -75,7 +75,26 @@ def convert_to_expression_node_tuple(instructions):
 def convert_to_expression_node(instructions):
   symbolic_stack = convert_to_expression_node_tuple(instructions)
   assert len(symbolic_stack) == 1, symbolic_stack
-  return symbolic_stack[0]
+  return ExprCreator()(symbolic_stack[0])
+
+class ExprCreator:
+  def __call__(self, expr_node):
+    if not isinstance(expr_node, bytecode_ast.ExpressionNodeBase):
+      return expr_node
+    last_node = expr_node.children[-1]
+    if isinstance(last_node, bytecode_ast.InstructionNodeBase):
+      opname = last_node.instruction.opname
+      if hasattr(self, opname):
+        return getattr(self, opname)(expr_node)
+      else:
+        return expr_node
+    else:
+      return expr_node
+
+  def MAKE_FUNCTION(self, expr_node):
+    make_function_node = bytecode_ast.MakeFunctionExprNode(expr_node.children)
+    code_obj = expr_node.children[0].instruction.argval
+    make_function_node.function_body = convert_to_bytecode_ast(list(dis.get_instructions(code_obj)))
 
 def convert_to_instruction_node(instruction):
   if hasattr(bytecode_ast, instruction.opname):

@@ -157,6 +157,12 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
+    from pprint import pprint
+    print('---------------------')
+    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(flattened_ast_node)))
+    print('---------------------')
+    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(expected_ast_node)))
+    print('---------------------')
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_mixed_dynamic_expression_assign(self):

@@ -48,6 +48,9 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
+    from pprint import pprint
+    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(flattened_ast_node)))
+    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(expected_ast_node)))
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_unpack_store_attr(self): 
@@ -120,6 +123,11 @@ class TestFlatten(unittest.TestCase):
       tmp5 = bar0().y
       tmp6 = bar1()
       tmp5[tmp6] = tmp4
+    # tmp1, _ = a, a + b
+    # --> bar0().x[bar1()] = tmp1
+    # tmp2 = bar0().x
+    # tmp3 = bar1()
+    # tmp2[tmp3] = tmp1 # STORE_SUBSCR
     flattened_ast_node, expected_ast_node = self.get_flattened_and_expected(
       origin_func=foo0,
       expected_func=foo1,

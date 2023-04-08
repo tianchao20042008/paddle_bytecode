@@ -41,6 +41,20 @@ class ExpressionNode(ExpressionNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
+class MakeFunctionExprNode(ExpressionNodeBase):
+  def __init__(self, children):
+    super().__init__(children)
+    self._function_body : StatementListNode = None
+
+    @property
+    def function_body(self):
+      assert self._function_body is not None
+      return self._function_body
+
+    @function_body.setter
+    def function_body(self, value):
+      self._function_body = value
+
 class InstructionNodeBase(BytecodeAstNode):
   def __init__(self, instruction):
     super().__init__()

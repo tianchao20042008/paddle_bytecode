@@ -100,23 +100,23 @@ class TestInferAttr(unittest.TestCase):
 
   def test_is_procedure_static_convertible_nested_dynamic_then_static(self): 
     def foo():
-      x = check_lifetime_static(static_func(bar())) + 1
-    def check_lifetime_static(ast_node, attr):
+      x = check(static_func(bar())) + 1
+    def check(ast_node, attr):
       self.assertEqual(attr(ast_node).is_procedure_static_convertible, True)
     self.check_lifetime(
       foo,
       dynamic_func_names={"bar"},
-      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+      builtin_funcs=dict(check=check)
     )
 
   def test_is_procedure_static_convertible_nested_static_then_dynamic(self): 
     def foo():
-      x = check_lifetime_static(bar(static_func())) + 1
-    def check_lifetime_static(ast_node, attr):
+      x = check(bar(static_func())) + 1
+    def check(ast_node, attr):
       self.assertEqual(attr(ast_node).is_procedure_static_convertible, False)
     self.check_lifetime(
       foo,
       dynamic_func_names={"bar"},
-      builtin_funcs=dict(check_lifetime_static=check_lifetime_static)
+      builtin_funcs=dict(check=check)
     )
 
