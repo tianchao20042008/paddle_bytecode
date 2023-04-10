@@ -30,7 +30,7 @@ class FlattenRightValueTransform:
       that.generated_ast_nodes = []
     return type(ast_node)(children)
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     expr_in_store_nodes = reduce(
       lambda acc, nodes:
         acc and reduce(lambda a, x: a and isinstance(x, bytecode_ast.ExpressionNodeBase), nodes, True),
@@ -46,7 +46,7 @@ class FlattenRightValueTransform:
       ])
     )
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     def get_children_not_replace():
       _and = lambda x, y: x and y
       not_replace = True 
@@ -96,7 +96,7 @@ class FlattenRightValueTransform:
       is_jump_target=None,
     )
     self.generated_ast_nodes.append(
-      bytecode_ast.StatementNode(
+      bytecode_ast.GenericStoreNode(
         ast_node,
         [(bytecode_ast.STORE_FAST(store_instr),)]
       )

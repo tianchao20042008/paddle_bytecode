@@ -37,7 +37,7 @@ def convert_to_statement_node(instructions):
       store_nodes.append((*convert_to_expression_node_tuple(store_instructions[:-1]), store_node))
     else:
       raise NotImplementedError("store instructions not supported: %s" % store_instructions[-1])
-  return bytecode_ast.StatementNode(convert_to_expression_node(instructions), store_nodes[::-1])
+  return bytecode_ast.GenericStoreNode(convert_to_expression_node(instructions), store_nodes[::-1])
 
 def _get_prev_store_instructions(instructions):
   if not instr_stack_util.opcode2is_store_or_delete[instructions[-1].opcode]:
@@ -69,7 +69,7 @@ def convert_to_expression_node_tuple(instructions):
         expression_children.append(instruction_as_arg)
       assert num_inputs_on_stack == 0
       expression_children.reverse()
-      symbolic_stack.append(bytecode_ast.ExpressionNode(expression_children))
+      symbolic_stack.append(bytecode_ast.GenericExpressionNode(expression_children))
   return symbolic_stack
 
 def convert_to_expression_node(instructions):
@@ -95,10 +95,12 @@ class ExprCreator:
     make_function_node = bytecode_ast.MakeFunctionExprNode(expr_node.children)
     code_obj = expr_node.children[0].instruction.argval
     make_function_node.function_body = convert_to_bytecode_ast(list(dis.get_instructions(code_obj)))
+    make_function_node.co_argcount = code_obj.co_argcount
+    return make_function_node
 
 def convert_to_instruction_node(instruction):
   if hasattr(bytecode_ast, instruction.opname):
     cls = getattr(bytecode_ast, instruction.opname)
   else:
-    cls = bytecode_ast.InstructionNode
+    cls = bytecode_ast.GenericInstructionNode
   return cls(instruction)

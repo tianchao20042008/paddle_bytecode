@@ -12,12 +12,16 @@ class DumpTransform:
   def StatementListNode(self, ast_node):
     return list([self(child) for child in ast_node.children])
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     return (self(ast_node.expr_node),
             list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
 
-  def ExpressionNode(self, ast_node):
+  def ExpressionNodeBase(self, ast_node):
     return (tuple(self(child) for child in ast_node.children))
+
+  def MakeFunctionExprNode(self, ast_node):
+    #return (self(ast_node.function_body), tuple(map(self.__call__, ast_node.children)))
+    return tuple(map(self.__call__, ast_node.children))
 
   def InstructionNodeBase(self, ast_node):
     return (ast_node.instruction.opname, ast_node.instruction.argval)

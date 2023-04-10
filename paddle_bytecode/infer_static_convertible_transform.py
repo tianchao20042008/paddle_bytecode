@@ -23,7 +23,7 @@ class InferIsProcedureStaticConvertibleTransform:
       )
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     self(ast_node.expr_node)
     for store_node_tuple in ast_node.store_nodes:
       if len(store_node_tuple) == 1:
@@ -46,14 +46,14 @@ class InferIsProcedureStaticConvertibleTransform:
         raise NotImplementedError()
     self.mut_attr(ast_node).is_procedure_static_convertible = True
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     for child in ast_node.children:
       self(child)
     self.mut_attr(ast_node).is_procedure_static_convertible = (
       self.mut_attr(ast_node.children[-1]).is_procedure_static_convertible
     )
 
-  def InstructionNode(self, ast_node):
+  def GenericInstructionNode(self, ast_node):
     self.mut_attr(ast_node).is_procedure_static_convertible = self.is_procedure_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):
@@ -83,7 +83,7 @@ class InferIsResultStaticConvertibleTransform:
     # StatementList has no results on stack.
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     self(ast_node.expr_node)
     for i, store_node_tuple in enumerate(ast_node.store_nodes):
       if len(store_node_tuple) == 1:
@@ -112,7 +112,7 @@ class InferIsResultStaticConvertibleTransform:
     # Statement has no results on stack.
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     last_child = None
     for child in ast_node.children:
       self(child)
@@ -120,7 +120,7 @@ class InferIsResultStaticConvertibleTransform:
     # expression is in reversed Polish notation.
     self.mut_attr(ast_node).is_result_static_convertible = self.mut_attr(last_child).is_result_static_convertible
 
-  def InstructionNode(self, ast_node):
+  def GenericInstructionNode(self, ast_node):
     self.mut_attr(ast_node).is_result_static_convertible = self.is_result_static_convertible(ast_node)
 
   def LOAD_CONST(self, ast_node):

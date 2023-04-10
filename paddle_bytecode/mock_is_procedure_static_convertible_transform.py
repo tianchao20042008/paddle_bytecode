@@ -37,7 +37,7 @@ class MockIsProcedureStaticConvertibleTransform:
     for child in ast_node.flat_children():
       self(child)
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     for child in ast_node.children:
       self(child)
     if not isinstance(ast_node.children[0], bytecode_ast.InstructionNodeBase):

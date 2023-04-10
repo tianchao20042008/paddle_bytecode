@@ -15,7 +15,7 @@ class StatementListNode(BytecodeAstNode):
   def flat_children(self):
     yield from self.children
 
-class StatementNode(BytecodeAstNode):
+class StoreNodeBase(BytecodeAstNode):
   def __init__(self, expr_node, store_nodes):
     super().__init__()
     self.expr_node = expr_node
@@ -25,6 +25,10 @@ class StatementNode(BytecodeAstNode):
     yield self.expr_node
     for instructions in self.store_nodes:
       yield from instructions
+
+class GenericStoreNode(StoreNodeBase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
 class ExpressionNodeBase(BytecodeAstNode):
   def __init__(self, children):
@@ -37,7 +41,7 @@ class ExpressionNodeBase(BytecodeAstNode):
   def flat_children(self):
     yield from self.children
 
-class ExpressionNode(ExpressionNodeBase):
+class GenericExpressionNode(ExpressionNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
@@ -46,14 +50,14 @@ class MakeFunctionExprNode(ExpressionNodeBase):
     super().__init__(children)
     self._function_body : StatementListNode = None
 
-    @property
-    def function_body(self):
-      assert self._function_body is not None
-      return self._function_body
+  @property
+  def function_body(self):
+    assert self._function_body is not None
+    return self._function_body
 
-    @function_body.setter
-    def function_body(self, value):
-      self._function_body = value
+  @function_body.setter
+  def function_body(self, value):
+    self._function_body = value
 
 class InstructionNodeBase(BytecodeAstNode):
   def __init__(self, instruction):
@@ -70,7 +74,7 @@ class InstructionNodeBase(BytecodeAstNode):
     return instr_stack_util.num_outputs_on_stack(self.instruction)
 
 
-class InstructionNode(InstructionNodeBase):
+class GenericInstructionNode(InstructionNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
@@ -88,3 +92,4 @@ class LOAD_FAST(InstructionNodeBase):
 class STORE_FAST(InstructionNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+

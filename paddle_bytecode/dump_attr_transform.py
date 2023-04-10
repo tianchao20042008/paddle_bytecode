@@ -1,8 +1,8 @@
-from typing import Callable
+from typing import Callable, Any
 
 class DumpAttrTransform:
 
-  def __init__(self, attr: Callable[["BytecodeAstNode"], "BytecodeAttr"]):
+  def __init__(self, attr: Callable[["BytecodeAstNode"], Any]):
     self.attr = attr
 
   def __call__(self, ast_node):
@@ -15,26 +15,18 @@ class DumpAttrTransform:
   def StatementListNode(self, ast_node):
     return list([self(child) for child in ast_node.children])
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     return (self(ast_node.expr_node),
             list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
 
-  def ExpressionNode(self, ast_node):
+  def ExpressionNodeBase(self, ast_node):
     return (
       tuple(self(child) for child in ast_node.children),
-      (
-        self.attr(ast_node).is_procedure_static_convertible,
-        self.attr(ast_node).is_result_static_convertible,
-        self.attr(ast_node).lifetime_allways_static
-      ),
+      self.attr(ast_node),
     )
 
   def InstructionNodeBase(self, ast_node):
     return (
       ast_node.instruction.opname, ast_node.instruction.argval,
-      (
-        self.attr(ast_node).is_procedure_static_convertible,
-        self.attr(ast_node).is_result_static_convertible,
-        self.attr(ast_node).lifetime_allways_static
-      )
+      self.attr(ast_node)
     )

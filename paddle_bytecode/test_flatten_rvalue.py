@@ -28,11 +28,11 @@ class TestFlatten(unittest.TestCase):
     )
     infer_attr(ast_node1)
     counter = 0
-    def generate_new_local_varname():
+    def generate_local_varname():
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    flatten_rvalue = FlattenRightValueTransform(generate_local_varname, mut_attr)
     ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
@@ -54,11 +54,11 @@ class TestFlatten(unittest.TestCase):
     )
     infer_attr(ast_node1)
     counter = 0
-    def generate_new_local_varname():
+    def generate_local_varname():
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    flatten_rvalue = FlattenRightValueTransform(generate_local_varname, mut_attr)
     ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
@@ -87,27 +87,27 @@ class TestFlatten(unittest.TestCase):
     )
     infer_attr(ast_node1)
     counter = 0
-    def generate_new_local_varname():
+    def generate_local_varname():
       nonlocal counter
       counter += 1
       return "tmp" + str(counter)
-    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    flatten_rvalue = FlattenRightValueTransform(generate_local_varname, mut_attr)
     ast_node2 = flatten_rvalue(ast_node1)
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node1))
     self.assertTrue(DiffOpnameAndArgvalTransform()(ast_node0, ast_node2))
 
-  def make_getter_generate_new_local_varname(self, prefix, init=0):
+  def make_getter_generate_local_varname(self, prefix, init=0):
     counter = init - 1 # `counter++` will be used later.
-    def generate_new_local_varname():
+    def generate_local_varname():
       nonlocal counter
       counter += 1
       return prefix + str(counter)
-    return generate_new_local_varname
+    return generate_local_varname
 
   def get_flattened_bytecode(self, f,
                              is_procedure_static_convertible,
                              is_result_static_convertible,
-                             generate_new_local_varname):
+                             generate_local_varname):
     ast_node = convert_to_bytecode_ast(list(dis.get_instructions(f)))
     mut_attr = bytecode_attr.BytecodeAttr.make_getter()
     is_procedure_static_convertible = (
@@ -119,7 +119,7 @@ class TestFlatten(unittest.TestCase):
       is_result_static_convertible
     )
     infer_attr(ast_node)
-    flatten_rvalue = FlattenRightValueTransform(generate_new_local_varname, mut_attr)
+    flatten_rvalue = FlattenRightValueTransform(generate_local_varname, mut_attr)
     return flatten_rvalue(ast_node)
 
   def get_dynamic_procedure_flattened_and_expected(
@@ -130,14 +130,14 @@ class TestFlatten(unittest.TestCase):
         and ast_node.instruction.argval in builtin_dynamic_funcs
       )
     is_result_static_convertible = lambda ast_node: (True,) * ast_node.num_outputs_on_stack()
-    generate_new_local_varname = self.make_getter_generate_new_local_varname(
+    generate_local_varname = self.make_getter_generate_local_varname(
       local_var_prefix, init=local_var_seq_init
     )
     ast_node0 = self.get_flattened_bytecode(
       origin_func,
       is_procedure_static_convertible=is_procedure_static_convertible,
       is_result_static_convertible=is_result_static_convertible,
-      generate_new_local_varname=generate_new_local_varname
+      generate_local_varname=generate_local_varname
     )
     ast_node1 = convert_to_bytecode_ast(list(dis.get_instructions(expected_func))) 
     return ast_node0, ast_node1
@@ -157,12 +157,6 @@ class TestFlatten(unittest.TestCase):
       local_var_prefix="tmp",
       local_var_seq_init=1
     )
-    from pprint import pprint
-    print('---------------------')
-    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(flattened_ast_node)))
-    print('---------------------')
-    pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(expected_ast_node)))
-    print('---------------------')
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
   def test_mixed_dynamic_expression_assign(self):

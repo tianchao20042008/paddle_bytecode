@@ -12,11 +12,11 @@ class CloneTransform:
   def StatementListNode(self, ast_node):
     return type(ast_node)([self(child) for child in ast_node.children])
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     return type(ast_node)(self(ast_node.expr_node),
             list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     return type(ast_node)(tuple(self(child) for child in ast_node.children))
 
   def InstructionNodeBase(self, ast_node):

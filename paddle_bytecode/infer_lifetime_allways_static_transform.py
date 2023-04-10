@@ -53,12 +53,12 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # no results for StatementListNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
-  def StatementNode(self, ast_node, _):
+  def StoreNodeBase(self, ast_node, _):
     # Given python code `(*lvalue) = rvalue_expr`:
     # consumed_by_static : List[bool] = IsResultAllwaysStaticFromNowOn(*lvalue) # pseudo code
     consumed_by_static = tuple(map(self.infer_lvalue_in_store_nodes, ast_node.store_nodes[::-1]))
     self(ast_node.expr_node, consumed_by_static)
-    # no results for StatementNode.
+    # no results for GenericStoreNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
   # infer whether a left-value is consumed by static python code.
@@ -80,7 +80,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     #     x # generate instruction POP_TOP
     #     return x
 
-    # no results for StatementNode.
+    # no results for GenericStoreNode.
     self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
     return True
 
@@ -109,16 +109,16 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # Instruction RETURN_VALUE: Returns with TOS to the caller of the function.
     # no more code consume the returned value.
 
-    # no results for RETURN_VALUE.
-    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
-    return True
+    # The returned value may be used by dynamic python code later.
+    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = (False,)
+    return False
 
   def YIELD_VALUE(self, store_nodes):
     # Instruction YIELD_VALUE: Pops TOS and yields it from a generator
     # the yielded value maybe used by subsequent dynamic python code. 
 
-    # no results for YIELD_VALUE.
-    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = ()
+    # The yielded value may be used by dynamic python code later.
+    self.mut_attr(store_nodes[-1]).is_result_allways_static_from_now_on = (False,)
     return False
 
   def STORE_NAME(self, store_nodes):
@@ -187,7 +187,7 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # No more code consume the deleted value.
     return True
 
-  def ExpressionNode(self, ast_node, consumed_by_static):
+  def GenericExpressionNode(self, ast_node, consumed_by_static):
     is_procedure_static_convertible = self.is_procedure_static_convertible(ast_node.children[-1])
     if not is_procedure_static_convertible:
       # Touching dynamic python code makes all variable non-static.
@@ -200,12 +200,12 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
       is_procedure_static_convertible and consumed_by_static[0],
     )
 
-  def InstructionNode(self, ast_node, consumed_by_static):
+  def GenericInstructionNode(self, ast_node, consumed_by_static):
     assert type(consumed_by_static) is tuple
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = consumed_by_static
 
   def LOAD_CONST(self, ast_node, consumed_by_static):
-    self.InstructionNode(ast_node, consumed_by_static)
+    self.GenericInstructionNode(ast_node, consumed_by_static)
 
   def LOAD_FAST(self, ast_node, consumed_by_static):
     # Instruction LOAD_FAST: Pushes a reference to the local co_varnames[var_num] onto the stack.

@@ -27,13 +27,13 @@ class FlattenLeftValueTransform:
       that.generated_ast_nodes = []
     return type(ast_node)(children)
 
-  def StatementNode(self, ast_node):
+  def StoreNodeBase(self, ast_node):
     return type(ast_node)(
       ast_node.expr_node,
       list(self.replace_left_value_with_local_var(instrs) for instrs in ast_node.store_nodes)
     )
 
-  def ExpressionNode(self, ast_node):
+  def GenericExpressionNode(self, ast_node):
     return ast_node
 
   def replace_left_value_with_local_var(self, store_nodes):
@@ -53,7 +53,7 @@ class FlattenLeftValueTransform:
       is_jump_target=None,
     )
     self.generated_ast_nodes.append(
-      bytecode_ast.StatementNode(
+      bytecode_ast.GenericStoreNode(
         bytecode_ast.LOAD_FAST(load_instr),
         [tuple(map(self.replace_right_value_with_local_var, store_nodes))]
       )
@@ -87,7 +87,7 @@ class FlattenLeftValueTransform:
       is_jump_target=None,
     )
     self.generated_ast_nodes.append(
-      bytecode_ast.StatementNode(
+      bytecode_ast.GenericStoreNode(
         ast_node,
         [(bytecode_ast.STORE_FAST(store_instr),)]
       )
