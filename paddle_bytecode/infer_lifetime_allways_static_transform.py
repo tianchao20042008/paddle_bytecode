@@ -53,7 +53,10 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # no results for StatementListNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
-  def StoreNodeBase(self, ast_node, _):
+  def ReturnValueNode(self, ast_node, consumed_by_static):
+    return self.GenericStoreNode(ast_node, consumed_by_static)
+
+  def GenericStoreNode(self, ast_node, _):
     # Given python code `(*lvalue) = rvalue_expr`:
     # consumed_by_static : List[bool] = IsResultAllwaysStaticFromNowOn(*lvalue) # pseudo code
     consumed_by_static = tuple(map(self.infer_lvalue_in_store_nodes, ast_node.store_nodes[::-1]))

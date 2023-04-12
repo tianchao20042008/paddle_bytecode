@@ -3,65 +3,85 @@ from . import instr_stack_util
 import dis
 
 def convert_to_bytecode_ast(instructions):
-  return convert_to_statement_list_node(instructions)
+  instruction_nodes = [convert_to_instruction_node(i) for i in instructions]
+  return convert_to_statement_list_node(instruction_nodes)
 
-def convert_to_statement_list_node(instructions):
+def convert_to_statement_list_node(instruction_nodes):
   acc = 0
-  sub_instructions = []
+  sub_instruction_nodes = []
   children = []
-  for instruction in instructions:
-    acc = acc + instr_stack_util.stack_effect(instruction)
-    sub_instructions.append(instruction)
+  for instruction_node in instruction_nodes:
+    acc = acc + instruction_node.stack_effect()
+    sub_instruction_nodes.append(instruction_node)
     if acc > 0:
       pass
     elif acc == 0:
-      children.append(convert_to_statement_node(sub_instructions))
-      sub_instructions = []
+      children.append(convert_to_statement_node(sub_instruction_nodes))
+      sub_instruction_nodes = []
     else:
       raise NotImplementedError("accumulated stack_effect should never be negative.")
   return bytecode_ast.StatementListNode(children)
 
 
-def convert_to_statement_node(instructions):
-  assert instr_stack_util.num_outputs_on_stack(instructions[-1]) == 0, instructions[-1]
+def convert_to_statement_node(instruction_nodes):
+  assert instruction_nodes[-1].num_outputs_on_stack() == 0, instruction_nodes[-1].instruction
   store_nodes = []
   while True:
-    instructions, store_instructions = _get_prev_store_instructions(instructions)
-    if len(store_instructions) == 0:
+    instruction_nodes, store_instruction_nodes = _get_prev_store_instructions(instruction_nodes)
+    if len(store_instruction_nodes) == 0:
       break;
-    elif len(store_instructions) == 1:
-      store_nodes.append((convert_to_instruction_node(store_instructions[0]),))
-    elif len(store_instructions) > 1:
-      store_node = convert_to_instruction_node(store_instructions[-1])
-      assert store_node.num_outputs_on_stack() == 0, store_instructions[-1]
-      store_nodes.append((*convert_to_expression_node_tuple(store_instructions[:-1]), store_node))
+    elif len(store_instruction_nodes) == 1:
+      store_nodes.append((store_instruction_nodes[0],))
+    elif len(store_instruction_nodes) > 1:
+      store_node = store_instruction_nodes[-1]
+      assert store_node.num_outputs_on_stack() == 0, store_instruction_nodes[-1]
+      store_nodes.append((*convert_to_expression_node_tuple(store_instruction_nodes[:-1]), store_node))
     else:
-      raise NotImplementedError("store instructions not supported: %s" % store_instructions[-1])
-  return bytecode_ast.GenericStoreNode(convert_to_expression_node(instructions), store_nodes[::-1])
+      raise NotImplementedError("store instructions not supported: %s" % store_instruction_nodes[-1])
+  return StoreNodeCreator()(convert_to_expression_node(instruction_nodes), store_nodes[::-1])
 
-def _get_prev_store_instructions(instructions):
-  if not instr_stack_util.opcode2is_store_or_delete[instructions[-1].opcode]:
-    return instructions, []
+class StoreNodeCreator:
+  def __call__(self, expr_node, store_nodes):
+    if len(store_nodes) == 1:
+      opname = store_nodes[0][-1].instruction.opname
+      method_name = opname
+      has_entry = hasattr(self, method_name)
+      if has_entry:
+        create = getattr(self, method_name)
+        return create(expr_node, store_nodes)
+      else:
+        return self.generic_create(expr_node, store_nodes)
+    else:
+      return self.generic_create(expr_node, store_nodes)
+
+  def generic_create(self, expr_node, store_nodes):
+    return bytecode_ast.GenericStoreNode(expr_node, store_nodes)
+
+  def RETURN_VALUE(self, expr_node, store_nodes):
+    return bytecode_ast.ReturnValueNode(expr_node, store_nodes)
+
+def _get_prev_store_instructions(instruction_nodes):
+  if not instr_stack_util.opcode2is_store_or_delete[instruction_nodes[-1].opcode]:
+    return instruction_nodes, []
   acc_stack_effect = 0
-  pos = len(instructions)
+  pos = len(instruction_nodes)
   while pos > 0:
     pos -= 1
-    acc_stack_effect += instr_stack_util.stack_effect(instructions[pos])
+    acc_stack_effect += instruction_nodes[pos].stack_effect()
     if acc_stack_effect == -1:
-      return instructions[0:pos], instructions[pos:]
+      return instruction_nodes[0:pos], instruction_nodes[pos:]
   raise NotImplementedError("dead code")
 
-def convert_to_expression_node_tuple(instructions):
+def convert_to_expression_node_tuple(instruction_nodes):
   # `symbolic_stack` contains instances of BytecodeAstNode.
   symbolic_stack = []
-  for instruction in instructions:
-    node = convert_to_instruction_node(instruction)
-    num_inputs_on_stack = node.num_inputs_on_stack()
+  for instruction_node in instruction_nodes:
+    num_inputs_on_stack = instruction_node.num_inputs_on_stack()
     if num_inputs_on_stack == 0:
-      symbolic_stack.append(node)
+      symbolic_stack.append(instruction_node)
     else:
       # expression_children is initialized in reversed order.
-      expression_children = [node]
+      expression_children = [instruction_node]
       while num_inputs_on_stack > 0:
         instruction_as_arg = symbolic_stack.pop()
         num_inputs_on_stack -= instruction_as_arg.num_outputs_on_stack()
@@ -72,8 +92,8 @@ def convert_to_expression_node_tuple(instructions):
       symbolic_stack.append(bytecode_ast.GenericExpressionNode(expression_children))
   return symbolic_stack
 
-def convert_to_expression_node(instructions):
-  symbolic_stack = convert_to_expression_node_tuple(instructions)
+def convert_to_expression_node(instruction_nodes):
+  symbolic_stack = convert_to_expression_node_tuple(instruction_nodes)
   assert len(symbolic_stack) == 1, symbolic_stack
   return ExprCreator()(symbolic_stack[0])
 

@@ -20,8 +20,7 @@ class DumpTransform:
     return (tuple(self(child) for child in ast_node.children))
 
   def MakeFunctionExprNode(self, ast_node):
-    #return (self(ast_node.function_body), tuple(map(self.__call__, ast_node.children)))
-    return tuple(map(self.__call__, ast_node.children))
+    return (self(ast_node.function_body), tuple(map(self.__call__, ast_node.children)))
 
   def InstructionNodeBase(self, ast_node):
     return (ast_node.instruction.opname, ast_node.instruction.argval)

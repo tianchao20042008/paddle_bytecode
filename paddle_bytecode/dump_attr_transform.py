@@ -17,7 +17,8 @@ class DumpAttrTransform:
 
   def StoreNodeBase(self, ast_node):
     return (self(ast_node.expr_node),
-            list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes]))
+            list([tuple(self(instr) for instr in instrs) for instrs in ast_node.store_nodes]),
+            self.attr(ast_node))
 
   def ExpressionNodeBase(self, ast_node):
     return (

@@ -12,7 +12,9 @@ class InferIsProcedureStaticConvertibleTransform:
     self.mut_attr = mut_attr
 
   def __call__(self, ast_node):
-    return getattr(self, type(ast_node).__name__)(ast_node)
+    ast_cls = type(ast_node)
+    method_name = ast_cls.__name__
+    return getattr(self, method_name)(ast_node)
 
   def StatementListNode(self, ast_node):
     is_procedure_static_convertible = True
@@ -23,7 +25,13 @@ class InferIsProcedureStaticConvertibleTransform:
       )
     self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
 
-  def StoreNodeBase(self, ast_node):
+  def ReturnValueNode(self, ast_node):
+    self(ast_node.expr_node)
+    #  RETURN VALUE are treated as dynamic opcode
+    self.mut_attr(ast_node.store_nodes[-1][-1]).is_procedure_static_convertible = False
+    self.mut_attr(ast_node).is_procedure_static_convertible = False
+
+  def GenericStoreNode(self, ast_node):
     self(ast_node.expr_node)
     for store_node_tuple in ast_node.store_nodes:
       if len(store_node_tuple) == 1:
@@ -75,7 +83,9 @@ class InferIsResultStaticConvertibleTransform:
     self.local_name2is_result_static_convertible = {}
 
   def __call__(self, ast_node):
-    return getattr(self, type(ast_node).__name__)(ast_node)
+    ast_cls = type(ast_node)
+    method_name = ast_cls.__name__
+    return getattr(self, method_name)(ast_node)
 
   def StatementListNode(self, ast_node):
     for child in ast_node.children:
@@ -83,7 +93,10 @@ class InferIsResultStaticConvertibleTransform:
     # StatementList has no results on stack.
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
-  def StoreNodeBase(self, ast_node):
+  def ReturnValueNode(self, ast_node):
+    return self.GenericStoreNode(ast_node)
+
+  def GenericStoreNode(self, ast_node):
     self(ast_node.expr_node)
     for i, store_node_tuple in enumerate(ast_node.store_nodes):
       if len(store_node_tuple) == 1:

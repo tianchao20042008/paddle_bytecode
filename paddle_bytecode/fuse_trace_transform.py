@@ -5,7 +5,7 @@ from .instruction import Instruction
 import dis
 from .get_undefined_local_var_names_transform import GetUndefinedLocalVarNamesTransform
 from .get_defined_dynamic_var_names_transform import GetDefinedDynamicVarNamesTransform
-from .is_static_convertible_transform import IsStaticConvertibleTransform
+from .is_statement_static_convertible_transform import IsStatementStaticConvertibleTransform
 
 class FuseTraceTransform:
   def __init__(self,
@@ -15,7 +15,7 @@ class FuseTraceTransform:
     self.func_name = func_name
     self.attr = attr
     self.generate_func_name = generate_func_name
-    self.is_static_convertible = IsStaticConvertibleTransform(attr)
+    self.is_statement_static_convertible = IsStatementStaticConvertibleTransform(attr)
 
   def __call__(self, ast_node):
     ast_cls = type(ast_node)
@@ -28,7 +28,7 @@ class FuseTraceTransform:
     new_children = []
     static_trace_ast_nodes = []
     for child in ast_node.children:
-      if self.is_static_convertible(child):
+      if self.is_statement_static_convertible(child):
         static_trace_ast_nodes.append(child)
       else:
         for generated_ast_node in self.generate_ast_nodes_for_func_call(static_trace_ast_nodes):
