@@ -27,7 +27,7 @@ class ConvertContext:
 
 
 def convert_to_bytecode_ast(instructions):
-  offset2label_node: dict[int, bytecode_ast.labelnode] = dict()
+  offset2label_node: Dict[int, bytecode_ast.labelnode] = {}
   def convert_instruction(instruction):
     return convert_to_label_node_and_instruction_node(instruction, offset2label_node)
   instruction_nodes = [n for i in instructions for n in convert_instruction(i)]
@@ -41,9 +41,13 @@ def convert_to_program(convert_ctx: ConvertContext) -> bytecode_ast.Program:
     current_node = convert_ctx.top_instruction_node()
     if isinstance(current_node, bytecode_ast.JumpNodeBase):
       # jump
+      convert_ctx.pop_instruction_node()
+      offset = current_node.instruction.argval
+      current_node.set_label_node(convert_ctx.label_node4offset(offset))
       reversed_children.append(current_node)
     elif isinstance(current_node, bytecode_ast.LabelNode):
       # label
+      convert_ctx.pop_instruction_node()
       reversed_children.append(current_node)
     elif instr_stack_util.opcode2is_store_or_delete[current_node.opcode]:
       # statement
@@ -51,8 +55,9 @@ def convert_to_program(convert_ctx: ConvertContext) -> bytecode_ast.Program:
       reversed_children.append(statement_list_node)
     else:
       # expression
+      statement_list_node = bytecode_ast.StatementListNode([])
       expression_node = convert_to_expression_node(convert_ctx)
-      stmt_expr_node = bytecode_ast.StmtExpresionNode([], expression_node)
+      stmt_expr_node = bytecode_ast.StmtExpressionNode(statement_list_node, expression_node)
       reversed_children.append(stmt_expr_node)
   assert convert_ctx.top_instruction_node() is None
   children = reversed_children[::-1]
@@ -63,6 +68,8 @@ def convert_to_statement_list_node(convert_ctx: ConvertContext):
   reversed_children = []
   while convert_ctx.top_instruction_node() is not None:
     current_node = convert_ctx.top_instruction_node()
+    if isinstance(current_node, bytecode_ast.LabelNode):
+      break
     if instr_stack_util.opcode2is_store_or_delete[current_node.opcode]:
       statement_node = convert_to_statement_node(convert_ctx)
       reversed_children.append(statement_node)

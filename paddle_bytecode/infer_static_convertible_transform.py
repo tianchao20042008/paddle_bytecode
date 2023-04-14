@@ -28,6 +28,13 @@ class InferIsProcedureStaticConvertibleTransform:
   def LabelNode(self, ast_node):
     self.mut_attr(ast_node).is_procedure_static_convertible = True
 
+  def GenericJumpNode(self, ast_node):
+    self.mut_attr(ast_node).is_procedure_static_convertible = True
+
+  def StmtExpressionNode(self, ast_node):
+    self(ast_node.statement_list_node)
+    self(ast_node.expr_node)
+
   def StatementListNode(self, ast_node):
     is_procedure_static_convertible = True
     for child in ast_node.children:
@@ -105,6 +112,13 @@ class InferIsResultStaticConvertibleTransform:
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
   def LabelNode(self, ast_node):
+    self.mut_attr(ast_node).is_result_static_convertible = ()
+
+  def StmtExpressionNode(self, ast_node):
+    self(ast_node.statement_list_node)
+    self(ast_node.expr_node)
+
+  def GenericJumpNode(self, ast_node):
     self.mut_attr(ast_node).is_result_static_convertible = ()
 
   def StatementListNode(self, ast_node):

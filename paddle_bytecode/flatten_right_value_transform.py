@@ -14,7 +14,7 @@ class FlattenRightValueTransform:
 
   def __call__(self, ast_node):
     ast_cls = type(ast_node)
-    if not hasattr(self, ast_cls.__name__):
+    while not hasattr(self, ast_cls.__name__) and ast_cls is not bytecode_ast.BytecodeAstNode:
       assert len(ast_cls.__bases__) == 1
       ast_cls = ast_cls.__bases__[0]
     return getattr(self, ast_cls.__name__)(ast_node)
@@ -24,6 +24,11 @@ class FlattenRightValueTransform:
 
   def LabelNode(self, ast_node):
     return ast_node
+
+  def StmtExpressionNode(self, ast_node):
+    statement_list_node = self(ast_node.statement_list_node)
+    expr_node = self(ast_node.expr_node)
+    return type(ast_node)(statement_list_node, expr_node)
 
   def StatementListNode(self, ast_node):
     # use `that` instead of self in order to support nested statement list.

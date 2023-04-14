@@ -230,5 +230,24 @@ class TestFlatten(unittest.TestCase):
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
 
+  def test_while_nested_static_expression(self):
+    def origin_func(x):
+      while condition:
+        x = static_bar(static_bar())
+        return x
+    def expected_func(x):
+      while condition:
+        x = static_bar(static_bar())
+        return x
+    flattened_ast_node, expected_ast_node = self.get_dynamic_procedure_flattened_and_expected(
+      origin_func=origin_func,
+      expected_func=expected_func,
+      builtin_dynamic_funcs={"bar"},
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
+
 if __name__ == '__main__':
     unittest.main()

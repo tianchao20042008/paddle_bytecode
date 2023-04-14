@@ -136,6 +136,85 @@ class TestFlatten(unittest.TestCase):
     # pprint(list((i.opname, i.argval) for i in GetInstructionsTransform()(expected_ast_node)))
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
+  def test_if_statement(self): 
+    def foo0():
+      if a:
+        b
+      bar().x = 1
+    def foo1():
+      if a:
+        b
+      tmp1 = 1
+      tmp2 = bar()
+      tmp2.x = tmp1
+    flattened_ast_node, expected_ast_node = self.get_flattened_and_expected(
+      origin_func=foo0,
+      expected_func=foo1,
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
+
+  def test_if_else_statement(self): 
+    def foo0():
+      if a:
+        b
+      else:
+        c
+      bar().x = 1
+    def foo1():
+      if a:
+        b
+      else:
+        c
+      tmp1 = 1
+      tmp2 = bar()
+      tmp2.x = tmp1
+    flattened_ast_node, expected_ast_node = self.get_flattened_and_expected(
+      origin_func=foo0,
+      expected_func=foo1,
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
+
+  def test_flatten_if_statement(self): 
+    def foo0():
+      if a:
+        bar().x = 1
+    def foo1():
+      if a:
+        tmp1 = 1
+        tmp2 = bar()
+        tmp2.x = tmp1
+    flattened_ast_node, expected_ast_node = self.get_flattened_and_expected(
+      origin_func=foo0,
+      expected_func=foo1,
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
+
+  def test_flatten_while_statement(self): 
+    def foo0():
+      while a:
+        bar().x = 1
+    def foo1():
+      while a:
+        tmp1 = 1
+        tmp2 = bar()
+        tmp2.x = tmp1
+    flattened_ast_node, expected_ast_node = self.get_flattened_and_expected(
+      origin_func=foo0,
+      expected_func=foo1,
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
 
 if __name__ == '__main__':
     unittest.main()

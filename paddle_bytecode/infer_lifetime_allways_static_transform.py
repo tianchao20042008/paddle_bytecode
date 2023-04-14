@@ -57,6 +57,14 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
     # no results for LabelNode.
     self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
 
+  def GenericJumpNode(self, ast_node, consumed_by_static):
+    self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
+
+  def StmtExpressionNode(self, ast_node, consumed_by_static):
+    self(ast_node.statement_list_node, consumed_by_static)
+    self(ast_node.expr_node, (False,))
+    self.mut_attr(ast_node).is_result_allways_static_from_now_on = (False,)
+
   def StatementListNode(self, ast_node, consumed_by_static):
     reversed_children = ast_node.children[::-1]
     for child in reversed_children:

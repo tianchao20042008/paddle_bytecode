@@ -19,7 +19,7 @@ class LabelNode(BytecodeAstNode):
   def flat_children(self):
     yield from []
 
-StatementType = Union["StatementListNode", "StmtExpresionNode", "LabelNode", "JumpNodeBase"]
+StatementType = Union["StatementListNode", "StmtExpressionNode", "LabelNode", "JumpNodeBase"]
 class Program(BytecodeAstNode):
   def __init__(self, children: List[StatementType]):
     super().__init__()
@@ -44,7 +44,7 @@ class StatementListNode(BytecodeAstNode):
 
 # Like c gnu extention statement expression `({a; b; c})`.
 # https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
-# StmtExpresionNode used to flatten expression in same cases of control flow.
+# StmtExpressionNode used to flatten expression in same cases of control flow.
 #
 # e.g.
 #
@@ -58,15 +58,15 @@ class StatementListNode(BytecodeAstNode):
 #   while ({tmp = static_bar(static_bar(x)); dynamic_foo()}):
 #     ...
 # ```
-class StmtExpresionNode(BytecodeAstNode):
-  def __init__(self, statement_list, expr):
+class StmtExpressionNode(BytecodeAstNode):
+  def __init__(self, statement_list_node: "StatementListNode", expr_node: "ExpressionNodeBase"):
     super().__init__()
-    self.statement_list = statement_list
-    self.expr = expr
+    self.statement_list_node = statement_list_node
+    self.expr_node = expr_node
 
   def flat_children(self):
-    yield from self.statement_list
-    yield self.expr
+    yield self.statement_list_node
+    yield self.expr_node
 
 class StatementNodeBase(BytecodeAstNode):
   def __init(self):
@@ -182,6 +182,14 @@ class RETURN_VALUE(InstructionNodeBase):
 class JumpNodeBase(InstructionNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    self._label_node = None
+
+  @property
+  def label_node(self):
+    return self._label_node
+
+  def set_label_node(self, label_node):
+    self._label_node = label_node
 
 
 class GenericJumpNode(JumpNodeBase):

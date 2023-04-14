@@ -11,9 +11,10 @@ class FlattenLeftValueTransform:
 
   def __call__(self, ast_node):
     ast_cls = type(ast_node)
-    if not hasattr(self, ast_cls.__name__):
-      assert len(ast_cls.__bases__) == 1
+    while not hasattr(self, ast_cls.__name__) and ast_cls is not bytecode_ast.BytecodeAstNode:
+      assert len(ast_cls.__bases__) == 1, type(ast_node)
       ast_cls = ast_cls.__bases__[0]
+    assert hasattr(self, ast_cls.__name__), type(ast_node)
     return getattr(self, ast_cls.__name__)(ast_node)
 
   def Program(self, ast_node):
@@ -22,6 +23,11 @@ class FlattenLeftValueTransform:
 
   def LabelNode(self, ast_node):
     return ast_node
+
+  def StmtExpressionNode(self, ast_node):
+    statement_list_node = self(ast_node.statement_list_node)
+    expr_node = self(ast_node.expr_node)
+    return type(ast_node)(statement_list_node, expr_node)
 
   def StatementListNode(self, ast_node):
     # use `that` instead of self in order to support nested statement list.

@@ -4,7 +4,7 @@ class DumpTransform:
 
   def __call__(self, ast_node):
     ast_cls = type(ast_node)
-    if not hasattr(self, ast_cls.__name__):
+    while not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
       ast_cls = ast_cls.__bases__[0]
     assert hasattr(self, ast_cls.__name__), "type(ast_node): %s" % type(ast_node)
@@ -12,6 +12,12 @@ class DumpTransform:
 
   def Program(self, ast_node):
     return list([self(child) for child in ast_node.flat_children_except_label()])
+
+  def StmtExpressionNode(self, ast_node):
+    if len(ast_node.statement_list_node.children) > 0:
+      return (self(ast_node.statement_list_node), self(ast_node.expr_node))
+    else:
+      return self(ast_node.expr_node)
 
   def StatementListNode(self, ast_node):
     return list([self(child) for child in ast_node.children])

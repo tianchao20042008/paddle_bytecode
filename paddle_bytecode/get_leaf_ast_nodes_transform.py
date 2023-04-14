@@ -1,9 +1,10 @@
+from .bytecode_ast import InstructionNodeBase
+
 class GetLeafAstNodesTransform:
 
   def __call__(self, ast_node):
-    children = list(ast_node.flat_children())
-    if len(children) == 0:
+    if isinstance(ast_node, InstructionNodeBase):
       yield ast_node
     else:
-      for child in children:
+      for child in ast_node.flat_children_except_label():
         yield from self(child)
