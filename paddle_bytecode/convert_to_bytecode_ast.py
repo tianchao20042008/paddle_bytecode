@@ -1,58 +1,119 @@
+from typing import Dict, List
 from . import bytecode_ast
 from . import instr_stack_util
+from dataclasses import dataclass
 import dis
 
-def convert_to_bytecode_ast(instructions):
-  instruction_nodes = [convert_to_instruction_node(i) for i in instructions]
-  return convert_to_statement_list_node(instruction_nodes)
+class ConvertContext:
+  def __init__(self,
+               offset2label_node: Dict[int, bytecode_ast.LabelNode],
+               instruction_nodes: List[bytecode_ast.InstructionNodeBase]):
+    self.offset2label_node = offset2label_node
+    self.instruction_nodes = instruction_nodes
+    self.pos = len(instruction_nodes) - 1
 
-def convert_to_statement_list_node(instruction_nodes):
-  acc = 0
-  sub_instruction_nodes = []
-  children = []
-  for instruction_node in instruction_nodes:
-    acc = acc + instruction_node.stack_effect()
-    sub_instruction_nodes.append(instruction_node)
-    if acc > 0:
-      pass
-    elif acc == 0:
-      children.append(convert_to_statement_node(sub_instruction_nodes))
-      sub_instruction_nodes = []
+  def top_instruction_node(self, offset=0) -> bytecode_ast.InstructionNodeBase:
+    pos = self.pos - offset
+    if pos < 0:
+      return None
     else:
-      raise NotImplementedError("accumulated stack_effect should never be negative.")
+      return self.instruction_nodes[pos]
+
+  def pop_instruction_node(self):
+    self.pos = self.pos - 1
+
+  def label_node4offset(self, offset: int) -> bytecode_ast.LabelNode:
+    return self.offset2label_node[offset]
+
+
+def convert_to_bytecode_ast(instructions):
+  offset2label_node: dict[int, bytecode_ast.labelnode] = dict()
+  def convert_instruction(instruction):
+    return convert_to_label_node_and_instruction_node(instruction, offset2label_node)
+  instruction_nodes = [n for i in instructions for n in convert_instruction(i)]
+  convert_ctx = ConvertContext(offset2label_node, instruction_nodes)
+  return convert_to_program(convert_ctx)
+
+
+def convert_to_program(convert_ctx: ConvertContext) -> bytecode_ast.Program:
+  reversed_children = []
+  while convert_ctx.top_instruction_node() is not None:
+    current_node = convert_ctx.top_instruction_node()
+    if isinstance(current_node, bytecode_ast.JumpNodeBase):
+      # jump
+      reversed_children.append(current_node)
+    elif isinstance(current_node, bytecode_ast.LabelNode):
+      # label
+      reversed_children.append(current_node)
+    elif instr_stack_util.opcode2is_store_or_delete[current_node.opcode]:
+      # statement
+      statement_list_node = convert_to_statement_list_node(convert_ctx)
+      reversed_children.append(statement_list_node)
+    else:
+      # expression
+      expression_node = convert_to_expression_node(convert_ctx)
+      stmt_expr_node = bytecode_ast.StmtExpresionNode([], expression_node)
+      reversed_children.append(stmt_expr_node)
+  assert convert_ctx.top_instruction_node() is None
+  children = reversed_children[::-1]
+  return bytecode_ast.Program(children)
+
+
+def convert_to_statement_list_node(convert_ctx: ConvertContext):
+  reversed_children = []
+  while convert_ctx.top_instruction_node() is not None:
+    current_node = convert_ctx.top_instruction_node()
+    if instr_stack_util.opcode2is_store_or_delete[current_node.opcode]:
+      statement_node = convert_to_statement_node(convert_ctx)
+      reversed_children.append(statement_node)
+    else:
+      break
+  children = reversed_children[::-1]
   return bytecode_ast.StatementListNode(children)
 
 
-def convert_to_statement_node(instruction_nodes):
-  assert instruction_nodes[-1].num_outputs_on_stack() == 0, instruction_nodes[-1].instruction
-  store_nodes = []
-  while True:
-    instruction_nodes, store_instruction_nodes = _get_prev_store_instructions(instruction_nodes)
-    if len(store_instruction_nodes) == 0:
-      break;
-    elif len(store_instruction_nodes) == 1:
-      store_nodes.append((store_instruction_nodes[0],))
-    elif len(store_instruction_nodes) > 1:
-      store_node = store_instruction_nodes[-1]
-      assert store_node.num_outputs_on_stack() == 0, store_instruction_nodes[-1]
-      store_nodes.append((*convert_to_expression_node_tuple(store_instruction_nodes[:-1]), store_node))
-    else:
-      raise NotImplementedError("store instructions not supported: %s" % store_instruction_nodes[-1])
-  return StoreNodeCreator()(convert_to_expression_node(instruction_nodes), store_nodes[::-1])
+def convert_to_statement_node(convert_ctx: ConvertContext):
+  return StoreNodeCreator()(convert_ctx)
 
 class StoreNodeCreator:
-  def __call__(self, expr_node, store_nodes):
-    if len(store_nodes) == 1:
-      opname = store_nodes[0][-1].instruction.opname
-      method_name = opname
-      has_entry = hasattr(self, method_name)
-      if has_entry:
-        create = getattr(self, method_name)
-        return create(expr_node, store_nodes)
+  def __call__(self, convert_ctx: ConvertContext):
+    opname = convert_ctx.top_instruction_node().opname
+    reversed_store_node_tuples = []
+    while True:
+      current_node = convert_ctx.top_instruction_node()
+      if instr_stack_util.opcode2is_store_or_delete[current_node.opcode]:
+        store_node_tuple = self.convert_to_store_node_tuple(convert_ctx)
+        reversed_store_node_tuples.append(store_node_tuple)
       else:
-        return self.generic_create(expr_node, store_nodes)
+        break
+    store_node_tuples = reversed_store_node_tuples[::-1]
+    expr_node = convert_to_unpack_expression_node(
+      convert_ctx, num_outputs_required_on_stack=len(store_node_tuples)
+    )
+    return self.create_store_node(opname, expr_node, store_node_tuples)
+
+  def convert_to_store_node_tuple(self, convert_ctx: ConvertContext):
+    store_instruction = convert_ctx.top_instruction_node()
+    if store_instruction.num_inputs_on_stack() == 1:
+      convert_ctx.pop_instruction_node()
+      return (store_instruction,)
+    elif store_instruction.num_inputs_on_stack() == 2:
+      convert_ctx.pop_instruction_node()
+      expr_node0 = convert_to_expression_node(convert_ctx)
+      return (expr_node0, store_instruction)
+    elif store_instruction.num_inputs_on_stack() == 3:
+      convert_ctx.pop_instruction_node()
+      expr_node1 = convert_to_expression_node(convert_ctx)
+      expr_node0 = convert_to_expression_node(convert_ctx)
+      return (expr_node0, expr_node1, store_instruction)
     else:
-      return self.generic_create(expr_node, store_nodes)
+      raise NotImplementedError()
+    
+
+  def create_store_node(self, opname, expr_node, store_nodes):
+    method_name = opname
+    create = getattr(self, method_name) if hasattr(self, method_name) else self.generic_create
+    return create(expr_node, store_nodes)
 
   def generic_create(self, expr_node, store_nodes):
     return bytecode_ast.GenericStoreNode(expr_node, store_nodes)
@@ -60,42 +121,42 @@ class StoreNodeCreator:
   def RETURN_VALUE(self, expr_node, store_nodes):
     return bytecode_ast.ReturnValueNode(expr_node, store_nodes)
 
-def _get_prev_store_instructions(instruction_nodes):
-  if not instr_stack_util.opcode2is_store_or_delete[instruction_nodes[-1].opcode]:
-    return instruction_nodes, []
-  acc_stack_effect = 0
-  pos = len(instruction_nodes)
-  while pos > 0:
-    pos -= 1
-    acc_stack_effect += instruction_nodes[pos].stack_effect()
-    if acc_stack_effect == -1:
-      return instruction_nodes[0:pos], instruction_nodes[pos:]
-  raise NotImplementedError("dead code")
+def convert_to_unpack_expression_node(convert_ctx: ConvertContext, num_outputs_required_on_stack: int):
+  expr_node_list = convert_to_expression_node_list(convert_ctx, num_outputs_required_on_stack)
+  assert len(expr_node_list) == 1
+  unpack_expr_node = expr_node_list[0]
+  assert unpack_expr_node.num_outputs_on_stack() == num_outputs_required_on_stack
+  return unpack_expr_node
 
-def convert_to_expression_node_tuple(instruction_nodes):
-  # `symbolic_stack` contains instances of BytecodeAstNode.
-  symbolic_stack = []
-  for instruction_node in instruction_nodes:
-    num_inputs_on_stack = instruction_node.num_inputs_on_stack()
-    if num_inputs_on_stack == 0:
-      symbolic_stack.append(instruction_node)
-    else:
-      # expression_children is initialized in reversed order.
-      expression_children = [instruction_node]
-      while num_inputs_on_stack > 0:
-        instruction_as_arg = symbolic_stack.pop()
-        num_inputs_on_stack -= instruction_as_arg.num_outputs_on_stack()
-        assert num_inputs_on_stack >= 0
-        expression_children.append(instruction_as_arg)
-      assert num_inputs_on_stack == 0
-      expression_children.reverse()
-      symbolic_stack.append(bytecode_ast.GenericExpressionNode(expression_children))
-  return symbolic_stack
+def convert_to_expression_node(convert_ctx: ConvertContext):
+  current_node = convert_ctx.top_instruction_node()
+  ret = None
+  if isinstance(current_node, bytecode_ast.LabelNode):
+    # e.g.: `a if b else c`
+    return convert_to_if_expression_node(convert_ctx)
+  elif current_node.num_inputs_on_stack() == 0:
+    convert_ctx.pop_instruction_node()
+    return current_node
+  else:
+    convert_ctx.pop_instruction_node()
+    arg_node_list = convert_to_expression_node_list(convert_ctx, current_node.num_inputs_on_stack())
+    expr_node = bytecode_ast.GenericExpressionNode([*arg_node_list, current_node])
+    return ExprCreator()(expr_node)
 
-def convert_to_expression_node(instruction_nodes):
-  symbolic_stack = convert_to_expression_node_tuple(instruction_nodes)
-  assert len(symbolic_stack) == 1, symbolic_stack
-  return ExprCreator()(symbolic_stack[0])
+
+def convert_to_if_expression_node(convert_ctx: ConvertContext):
+  TODO
+
+
+def convert_to_expression_node_list(convert_ctx: ConvertContext, num_outputs_required_on_stack: int):
+  reversed_reduced = []
+  while num_outputs_required_on_stack > 0:
+    ast_node = convert_to_expression_node(convert_ctx)
+    reversed_reduced.append(ast_node)
+    num_outputs_required_on_stack -= ast_node.num_outputs_on_stack()
+  assert num_outputs_required_on_stack == 0
+  return reversed_reduced[::-1]
+
 
 class ExprCreator:
   def __call__(self, expr_node):
@@ -118,9 +179,23 @@ class ExprCreator:
     make_function_node.co_argcount = code_obj.co_argcount
     return make_function_node
 
+
+def convert_to_label_node_and_instruction_node(
+    instruction, mut_offset2label_node: Dict[int, bytecode_ast.LabelNode]
+  ):
+  if instruction.is_jump_target:
+    label_node = bytecode_ast.LabelNode()
+    assert instruction.offset not in mut_offset2label_node
+    mut_offset2label_node[instruction.offset] = label_node
+    yield label_node
+  yield convert_to_instruction_node(instruction)
+
+
 def convert_to_instruction_node(instruction):
   if hasattr(bytecode_ast, instruction.opname):
     cls = getattr(bytecode_ast, instruction.opname)
+  elif instr_stack_util.is_jump_instruction(instruction):
+    cls = bytecode_ast.GenericJumpNode
   else:
     cls = bytecode_ast.GenericInstructionNode
   return cls(instruction)

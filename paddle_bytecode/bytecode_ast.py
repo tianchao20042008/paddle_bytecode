@@ -8,6 +8,9 @@ class BytecodeAstNode:
   def flat_children(self):
     raise NotImplementedError()
 
+  def flat_children_except_label(self):
+    return self.flat_children()
+
 
 class LabelNode(BytecodeAstNode):
   def __init__(self):
@@ -22,7 +25,10 @@ class Program(BytecodeAstNode):
     super().__init__()
     self.children = children
 
-  def flat_children():
+  def flat_children(self):
+    yield from self.children
+
+  def flat_children_except_label(self):
     for child in self.children:
       if not isinstance(child, LabelNode):
         yield child
@@ -92,7 +98,15 @@ class ExpressionNodeBase(BytecodeAstNode):
     self.children = children
 
   def num_outputs_on_stack(self):
-    return self.children[-1].num_outputs_on_stack()
+    num_inputs_on_stack = self.children[-1].num_inputs_on_stack()
+    num_outputs_on_stack = self.children[-1].num_outputs_on_stack()
+    if (num_inputs_on_stack == num_outputs_on_stack
+        and num_outputs_on_stack > 1
+        and len(self.children) == 2):
+      #e.g.: `a, b, c = d, e, f`  and `a, b, c, d = e, f, g, h`
+      return max(num_outputs_on_stack, self.children[0].num_outputs_on_stack())
+    else:
+      return num_outputs_on_stack
 
   def flat_children(self):
     yield from self.children

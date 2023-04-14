@@ -1,6 +1,9 @@
 import dis
 import sys
 
+def is_jump_instruction(instruction):
+  return opcode2hasjrel[instruction.opcode] or opcode2hasjabs[instruction.opcode]
+
 def stack_effect(instruction):
   return dis.stack_effect(instruction.opcode, instruction.arg)
 
@@ -292,3 +295,21 @@ def generate_opcode2is_store_or_delete():
   return opcode2is_sotre_or_delete
 
 opcode2is_store_or_delete = generate_opcode2is_store_or_delete()
+
+def generate_opcode2hasjrel():
+  opcode_size = 256
+  opcode2hasjrel = [False] * opcode_size
+  for opcode in dis.hasjrel:
+    opcode2hasjrel[opcode] = True
+  return opcode2hasjrel
+
+opcode2hasjrel = generate_opcode2hasjrel()
+
+def generate_opcode2hasjabs():
+  opcode_size = 256
+  opcode2hasjabs = [False] * opcode_size
+  for opcode in dis.hasjabs:
+    opcode2hasjabs[opcode] = True
+  return opcode2hasjabs
+
+opcode2hasjabs = generate_opcode2hasjabs()

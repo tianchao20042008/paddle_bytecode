@@ -46,6 +46,17 @@ class InferIsResultAllwaysStaticFromNowOnTransform:
   def __call__(self, ast_node, consumed_by_static: List[bool] =(True,)):
     return getattr(self, type(ast_node).__name__)(ast_node, consumed_by_static)
     
+  def Program(self, ast_node, consumed_by_static):
+    reversed_children = ast_node.children[::-1]
+    for child in reversed_children:
+      self(child, consumed_by_static=(True,))
+    # no results for Program.
+    self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
+
+  def LabelNode(self, ast_node, consumed_by_static):
+    # no results for LabelNode.
+    self.mut_attr(ast_node).is_result_allways_static_from_now_on = ()
+
   def StatementListNode(self, ast_node, consumed_by_static):
     reversed_children = ast_node.children[::-1]
     for child in reversed_children:

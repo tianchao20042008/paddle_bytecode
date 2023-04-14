@@ -16,6 +16,18 @@ class InferIsProcedureStaticConvertibleTransform:
     method_name = ast_cls.__name__
     return getattr(self, method_name)(ast_node)
 
+  def Program(self, ast_node):
+    is_procedure_static_convertible = True
+    for child in ast_node.children:
+      self(child)
+      is_procedure_static_convertible = (
+        is_procedure_static_convertible and self.mut_attr(child).is_procedure_static_convertible
+      )
+    self.mut_attr(ast_node).is_procedure_static_convertible = is_procedure_static_convertible
+  
+  def LabelNode(self, ast_node):
+    self.mut_attr(ast_node).is_procedure_static_convertible = True
+
   def StatementListNode(self, ast_node):
     is_procedure_static_convertible = True
     for child in ast_node.children:
@@ -86,6 +98,14 @@ class InferIsResultStaticConvertibleTransform:
     ast_cls = type(ast_node)
     method_name = ast_cls.__name__
     return getattr(self, method_name)(ast_node)
+
+  def Program(self, ast_node):
+    for child in ast_node.children:
+      self(child)
+    self.mut_attr(ast_node).is_result_static_convertible = ()
+
+  def LabelNode(self, ast_node):
+    self.mut_attr(ast_node).is_result_static_convertible = ()
 
   def StatementListNode(self, ast_node):
     for child in ast_node.children:

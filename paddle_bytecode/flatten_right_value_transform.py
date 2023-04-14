@@ -19,6 +19,12 @@ class FlattenRightValueTransform:
       ast_cls = ast_cls.__bases__[0]
     return getattr(self, ast_cls.__name__)(ast_node)
 
+  def Program(self, ast_node):
+    return type(ast_node)([self(child) for child in ast_node.children])
+
+  def LabelNode(self, ast_node):
+    return ast_node
+
   def StatementListNode(self, ast_node):
     # use `that` instead of self in order to support nested statement list.
     that = type(self)(self.generate_new_local_varname, self.attr)
