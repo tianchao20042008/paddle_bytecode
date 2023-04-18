@@ -5,12 +5,16 @@ from bytecode_lexer_token import BytecodeLexerToken
 from bytecode_yacc_basic_expression import BytecodeYaccBasicExpression
 from bytecode_yacc_load_expression import BytecodeYaccLoadExpression
 from bytecode_yacc_store import BytecodeYaccStore
+from bytecode_yacc_builtin_call import BytecodeYaccBuiltinCall
+from bytecode_yacc_expression_list import BytecodeYaccExpressionList
 from paddle_bytecode import bytecode_ast
 from paddle_bytecode import instr_stack_util
 
 class BytecodeParser(BytecodeLexerToken,
                      BytecodeYaccBasicExpression,
                      BytecodeYaccLoadExpression,
+                     BytecodeYaccBuiltinCall,
+                     BytecodeYaccExpressionList,
                      BytecodeYaccStore):
     t_ignore = (" \t\r\n")
 
@@ -103,13 +107,21 @@ class BytecodeParser(BytecodeLexerToken,
         'statement : RETURN_VALUE expression'
         return_node = bytecode_ast.GenericInstructionNode(p[1])
         p[0] = bytecode_ast.ReturnValueNode(p[2], [(return_node,)])
-  
+
+    def get_token_strs(self, instruction):
+        if instruction.opname in {"CALL_FUNCTION", "BUILD_MAP", "BUILD_LIST", "BUILD_TUPLE"}:
+          return [f"ARG{instruction.arg}", instruction.opname]
+        else:
+          return [instruction.opname]
+
     def parse(self, f):
         self.init()
         self.instructions = list(dis.get_instructions(f))[::-1]
         lexer = lex.lex(module=self)
         parser = yacc.yacc(module=self, start='statement_list')
-        return parser.parse("\n".join([i.opname for i in self.instructions]))
+        tokens = [t for i in self.instructions for t in self.get_token_strs(i)]
+        #print("\n".join(tokens))
+        return parser.parse("\n".join(tokens))
 
 
 class ExprCreator:
@@ -138,8 +150,9 @@ if __name__ == "__main__":
     def foo():
         a = 30 * 40
         c, d = bar, cd
+        c[30], d.b, e.c = bar, cd, nice
         b = 30 / 40
-        return a + 30 * b
+        return a + 30 * bar(bar(), bar(bar()))
     parser = BytecodeParser()
     from paddle_bytecode.print_transform import PrintTransform
     print('-'*100)

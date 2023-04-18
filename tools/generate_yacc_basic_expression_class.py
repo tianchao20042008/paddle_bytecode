@@ -24,5 +24,4 @@ for opname,output_num_or_f in instr_stack_util.opname2output_num_or_f.items():
     continue
   assert output_num == 1
   assert input_num > 0
-  expression_list = " ".join(["expression"]*input_num)
-  print(f"    def p_basic_expression_{opname}(self, p):\n        'expression : {opname} {expression_list}'\n        p[0] = self.parse_basic_expression(list(p[2:])[::-1], p[1])\n\n")
+  print(f"    def p_basic_expression_{opname}(self, p):\n        'expression : expression_list {opname}'\n        p[0] = self.parse_basic_expression(p[1], p[2])\n\n")

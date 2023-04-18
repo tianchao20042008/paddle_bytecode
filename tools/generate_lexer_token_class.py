@@ -8,6 +8,9 @@ print("\n    def parse_token(t):\n        return t\n")
 for opname,_ in dis.opmap.items():
   print("    def t_%s(self, t):\n        \"%s\"\n        return self.parse_token(t)\n" % (opname, opname))
 
+for i in range(64):
+  print(f"    def t_ARG{i}(self, t):\n        \"ARG{i}\"\n        return t\n")
+
 print("\n    tokens = (\n%s\n    )\n" % (
-  ',\n'.join(['        "%s"' % opname for opname,_ in dis.opmap.items()])
+  ',\n'.join([f'        "{opname}"' for opname,_ in dis.opmap.items()] + [f'        "ARG{i}"' for i in range(64)])
 ))
