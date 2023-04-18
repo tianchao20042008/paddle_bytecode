@@ -249,5 +249,27 @@ class TestFlatten(unittest.TestCase):
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
 
+  def test_for_loop_static_dynamic_interleave_expression_assign(self):
+    def origin_func(x):
+      for _ in range(10):
+        x = static_func(1 + x, bar(static_func(bar())), 2 + x)
+        return x
+    def expected_func(x):
+      for _ in range(10):
+        tmp1 = 1 + x
+        tmp2 = bar()
+        tmp3 = static_func(tmp2)
+        tmp4 = bar(tmp3)
+        x = static_func(tmp1, tmp4, 2 + x)
+        return x
+    flattened_ast_node, expected_ast_node = self.get_dynamic_procedure_flattened_and_expected(
+      origin_func=origin_func,
+      expected_func=expected_func,
+      builtin_dynamic_funcs={"bar"},
+      local_var_prefix="tmp",
+      local_var_seq_init=1
+    )
+    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+
 if __name__ == '__main__':
     unittest.main()

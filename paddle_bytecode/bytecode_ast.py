@@ -13,8 +13,9 @@ class BytecodeAstNode:
 
 
 class LabelNode(BytecodeAstNode):
-  def __init__(self):
+  def __init__(self, offset):
     super().__init__()
+    self.offset = offset
 
   def flat_children(self):
     yield from []

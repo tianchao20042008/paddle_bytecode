@@ -88,7 +88,7 @@ if sys.version_info[0:2] == (3, 8):
     STORE_NAME=0,
     DELETE_NAME=0,
     UNPACK_SEQUENCE=lambda instr: instr.arg,
-#    FOR_ITER=?,
+    FOR_ITER=1,
     UNPACK_EX=lambda instr: instr.arg + 1,
     STORE_ATTR=0,
     DELETE_ATTR=0,
@@ -269,12 +269,12 @@ if sys.version_info[0:2] == (3, 8):
     POP_FINALLY=False,
   )
 else:
-  raise NotImplementedError("paddle_bytecode module is not supported in version" % sys.version_info)
+  raise NotImplementedError("paddle_bytecode module is not supported in version %s" % sys.version_info)
 
 def generate_opcode2num_outputs_on_stack():
   def UnimplementedFunction(opcode):
     def f(instruction):
-      raise NotImplementedError("static_num_outputs is not implemented for opname: " % dis.opname[opcode])
+      raise NotImplementedError("static_num_outputs is not implemented for opname: %s" % dis.opname[opcode])
     return f
   def Const(number):
     return lambda _: number

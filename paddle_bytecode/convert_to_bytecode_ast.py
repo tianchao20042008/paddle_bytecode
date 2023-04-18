@@ -191,7 +191,7 @@ def convert_to_label_node_and_instruction_node(
     instruction, mut_offset2label_node: Dict[int, bytecode_ast.LabelNode]
   ):
   if instruction.is_jump_target:
-    label_node = bytecode_ast.LabelNode()
+    label_node = bytecode_ast.LabelNode(instruction.offset)
     assert instruction.offset not in mut_offset2label_node
     mut_offset2label_node[instruction.offset] = label_node
     yield label_node
@@ -206,3 +206,4 @@ def convert_to_instruction_node(instruction):
   else:
     cls = bytecode_ast.GenericInstructionNode
   return cls(instruction)
+  
