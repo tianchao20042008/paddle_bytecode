@@ -7,6 +7,7 @@ from bytecode_yacc_load_expression import BytecodeYaccLoadExpression
 from bytecode_yacc_store import BytecodeYaccStore
 from bytecode_yacc_builtin_call import BytecodeYaccBuiltinCall
 from bytecode_yacc_expression_list import BytecodeYaccExpressionList
+from bytecode_yacc_if_statement import BytecodeYaccIfStatement
 from paddle_bytecode import bytecode_ast
 from paddle_bytecode import instr_stack_util
 
@@ -15,6 +16,7 @@ class BytecodeParser(BytecodeLexerToken,
                      BytecodeYaccLoadExpression,
                      BytecodeYaccBuiltinCall,
                      BytecodeYaccExpressionList,
+                     BytecodeYaccIfStatement,
                      BytecodeYaccStore):
     t_ignore = (" \t\r\n")
 
@@ -25,6 +27,7 @@ class BytecodeParser(BytecodeLexerToken,
     def init(self):
         self.instruction_index = 0
         self.instructions = dict()
+        self.target_offset2num_jump = dict()
 
     def parse_token(self, t):
         t.value = self.instructions[self.instruction_index]
@@ -53,6 +56,10 @@ class BytecodeParser(BytecodeLexerToken,
       else:
         cls = bytecode_ast.GenericInstructionNode
       return cls(instruction)
+
+    def p_program(self, p):
+        'program : statement_list'
+        p[0] = bytecode_ast.Program([p[1]])
 
     def p_statement_list_terminal(self, p):
         'statement_list : statement'
@@ -110,15 +117,26 @@ class BytecodeParser(BytecodeLexerToken,
 
     def get_token_strs(self, instruction):
         if instruction.opname in {"CALL_FUNCTION", "BUILD_MAP", "BUILD_LIST", "BUILD_TUPLE"}:
-          return [f"ARG{instruction.arg}", instruction.opname]
-        else:
-          return [instruction.opname]
+            yield f"ARG{instruction.arg}"
+        yield instruction.opname
+        if instruction.is_jump_target:
+          for _ in range(self.target_offset2num_jump[instruction.offset]):
+            yield "LABEL"
+
+    def update_target_offset2num_jump(self):
+        for instr in self.instructions:
+            if not instr_stack_util.is_jump_instruction(instr):
+                continue
+            if instr.argval not in self.target_offset2num_jump:
+                self.target_offset2num_jump[instr.argval] = 0
+            self.target_offset2num_jump[instr.argval] += 1
 
     def parse(self, f):
         self.init()
         self.instructions = list(dis.get_instructions(f))[::-1]
+        self.update_target_offset2num_jump()
         lexer = lex.lex(module=self)
-        parser = yacc.yacc(module=self, start='statement_list')
+        parser = yacc.yacc(module=self, start='program')
         tokens = [t for i in self.instructions for t in self.get_token_strs(i)]
         #print("\n".join(tokens))
         return parser.parse("\n".join(tokens))
@@ -151,7 +169,10 @@ if __name__ == "__main__":
         a = 30 * 40
         c, d = bar, cd
         c[30], d.b, e.c = bar, cd, nice
-        b = 30 / 40
+        if cond:
+          b = 30 / 40
+        else:
+          d = 50
         return a + 30 * bar(bar(), bar(bar()))
     parser = BytecodeParser()
     from paddle_bytecode.print_transform import PrintTransform

@@ -4,6 +4,9 @@ class BytecodeLexerToken:
     def parse_token(t):
         return t
 
+
+    t_LABEL = 'LABEL'
+
     def t_POP_TOP(self, t):
         "POP_TOP"
         return self.parse_token(t)
@@ -742,6 +745,7 @@ class BytecodeLexerToken:
 
 
     tokens = (
+        "LABEL",
         "POP_TOP",
         "ROT_TWO",
         "ROT_THREE",
@@ -927,4 +931,3 @@ class BytecodeLexerToken:
         "ARG62",
         "ARG63"
     )
-

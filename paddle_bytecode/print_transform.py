@@ -31,6 +31,18 @@ class PrintTransform:
     for child in ast_node.children:
       self(child, depth)
 
+  def IfStatementNode(self, ast_node, depth):
+    self(ast_node.cond_node, depth=depth+1)
+    self(ast_node.cond_jump_node, depth=depth)
+    self(ast_node.true_stmt_list_node, depth=depth+1) 
+
+  def IfElseStatementNode(self, ast_node, depth):
+    self(ast_node.cond_node, depth=depth+1)
+    self(ast_node.cond_jump_node, depth=depth)
+    self(ast_node.true_stmt_list_node, depth=depth+1) 
+    self(ast_node.jump_forward_node, depth=depth)
+    self(ast_node.false_stmt_list_node, depth=depth+1) 
+
   def StoreNodeBase(self, ast_node, depth):
     self(ast_node.expr_node, depth+1)
     for instrs in ast_node.store_nodes:

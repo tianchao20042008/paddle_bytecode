@@ -70,9 +70,37 @@ class StmtExpressionNode(BytecodeAstNode):
     yield self.expr_node
 
 class StatementNodeBase(BytecodeAstNode):
-  def __init(self):
+  def __init__(self):
     super().__init__()
     
+
+class IfStatementNode(StatementNodeBase):
+  def __init__(self, cond_node, cond_jump_node, true_stmt_list_node):
+    self.cond_node = cond_node
+    self.cond_jump_node = cond_jump_node
+    self.true_stmt_list_node = true_stmt_list_node
+
+  def flat_children(self):
+    yield self.cond_node
+    yield self.cond_jump_node
+    yield self.true_stmt_list_node
+      
+
+class IfElseStatementNode(StatementNodeBase):
+  def __init__(self, cond_node, cond_jump_node, true_stmt_list_node, jump_forward_node, false_stmt_list_node):
+    self.cond_node = cond_node
+    self.cond_jump_node = cond_jump_node
+    self.true_stmt_list_node = true_stmt_list_node
+    self.jump_forward_node = jump_forward_node
+    self.false_stmt_list_node = false_stmt_list_node
+
+  def flat_children(self):
+    yield self.cond_node
+    yield self.cond_jump_node
+    yield self.true_stmt_list_node
+    yield self.jump_forward_node
+    yield self.false_stmt_list_node
+
 
 class StoreNodeBase(StatementNodeBase):
   def __init__(self, expr_node, store_nodes):
