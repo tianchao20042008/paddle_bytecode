@@ -10,7 +10,14 @@ class DumpAttrTransform:
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
       ast_cls = ast_cls.__bases__[0]
+    assert getattr(self, ast_cls.__name__), type(ast_node)
     return getattr(self, ast_cls.__name__)(ast_node)
+
+  def Program(self, ast_node):
+    return list([self(child) for child in ast_node.flat_children_except_label()])
+
+  def StmtExpressionNode(self, ast_node):
+    return list([self(child) for child in ast_node.statement_list_node.children + [ast_node.expr_node]])
 
   def StatementListNode(self, ast_node):
     return list([self(child) for child in ast_node.children])

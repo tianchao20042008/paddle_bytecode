@@ -19,10 +19,10 @@ class IsStatementStaticConvertibleTransform:
   def GenericStoreNode(self, ast_node):
     if len(ast_node.store_nodes) > 1:
       return self.naive_handle_generic_store_node(ast_node)
-    elif len(ast_node.store_nodes) == 1:
-      raise NotImplementedError()
+    elif len(ast_node.store_nodes) == 0:
+      raise NotImplementedError("invalid store node")
     else:
-      method_name = ast_node[-1][-1].instruction.opname
+      method_name = ast_node.store_nodes[-1][-1].instruction.opname
       if hasattr(self, method_name):
         return getattr(self, method_name)(ast_node)
       else:

@@ -9,6 +9,8 @@ from paddle_bytecode.flatten_right_value_transform import FlattenRightValueTrans
 from paddle_bytecode.diff_opname_and_argval_transform import DiffOpnameAndArgvalTransform
 from paddle_bytecode.fuse_trace_transform import FuseTraceTransform
 from paddle_bytecode.dump_transform import DumpTransform
+from paddle_bytecode.dump_attr_transform import DumpAttrTransform
+from paddle_bytecode.pretty_string_transform import PrettyStringTransform
 from paddle_bytecode.get_instructions_transform import GetInstructionsTransform
 import paddle_bytecode.mock_is_procedure_static_convertible_transform as mock
 
@@ -76,15 +78,15 @@ class TestFuseTrace(unittest.TestCase):
       is_result_static_convertible=is_result_static_convertible,
       generate_local_varname=generate_local_varname
     )
-    from pprint import pprint
-    pprint(DumpTransform()(ast_node0))
     attr = self.infer_attr(
       ast_node=ast_node0,
       is_procedure_static_convertible=is_procedure_static_convertible,
       is_result_static_convertible=is_result_static_convertible,
     )
+    from pprint import pprint
+    pprint(DumpAttrTransform(lambda node: attr(node).lifetime_allways_static)(ast_node0))
     fuse_trace = FuseTraceTransform(
-      func_name=expected_func.__name__,
+      func_name=expected_func.__qualname__,
       attr=attr,
       generate_func_name=generate_func_name,
     )
@@ -113,9 +115,9 @@ class TestFuseTrace(unittest.TestCase):
     )
     from pprint import pprint
     print('-'*100)
-    pprint(DumpTransform()(fused_ast_node))
+    print(PrettyStringTransform()(fused_ast_node))
     print('-'*100)
-    pprint(DumpTransform()(expected_ast_node))
+    print(PrettyStringTransform()(expected_ast_node))
     print('-'*100)
     self.assertTrue(DiffOpnameAndArgvalTransform()(fused_ast_node, expected_ast_node))
 

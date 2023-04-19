@@ -88,7 +88,7 @@ _lr_productions = [
   ('expression -> BINARY_SUBSCR expression expression','expression',3,'p_basic_expression_BINARY_SUBSCR','bytecode_yacc_basic_expression.py',60),
   ('expression -> ARG14 CALL_FUNCTION expression_list_15','expression',3,'p_call_function_arg_14','bytecode_yacc_builtin_call.py',60),
   ('expression_list_15 -> expression_list_14 expression','expression_list_15',2,'p_expression_list_15','bytecode_yacc_expression_list.py',60),
-  ('program -> statement_list','program',1,'p_program','bytecode_grammer.py',61),
+  ('program -> statement_list','program',1,'p_program_0','bytecode_grammer.py',61),
   ('expression -> ARG15 CALL_FUNCTION expression_list_16','expression',3,'p_call_function_arg_15','bytecode_yacc_builtin_call.py',64),
   ('expression_list_16 -> expression_list_15 expression','expression_list_16',2,'p_expression_list_16','bytecode_yacc_expression_list.py',64),
   ('statement_list -> statement','statement_list',1,'p_statement_list_terminal','bytecode_grammer.py',65),

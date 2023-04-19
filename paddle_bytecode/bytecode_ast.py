@@ -147,7 +147,8 @@ class GenericExpressionNode(ExpressionNodeBase):
 class MakeFunctionExprNode(ExpressionNodeBase):
   def __init__(self, children):
     super().__init__(children)
-    self._function_body : StatementListNode = None
+    self._function_body : Program = None
+    self._co_argcount: int = None
 
   @property
   def function_body(self):
@@ -156,7 +157,18 @@ class MakeFunctionExprNode(ExpressionNodeBase):
 
   @function_body.setter
   def function_body(self, value):
+    assert self._function_body is None
     self._function_body = value
+
+  @property
+  def co_argcount(self):
+    assert self._co_argcount is not None
+    return self._co_argcount
+
+  @co_argcount.setter
+  def co_argcount(self, value):
+    assert self._co_argcount is None
+    self._co_argcount = value
 
 class InstructionNodeBase(BytecodeAstNode):
   def __init__(self, instruction):
@@ -225,3 +237,12 @@ class GenericJumpNode(JumpNodeBase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
+def create_instruction_node(instruction):
+  if instruction.opname in globals():
+    cls = globals()[instruction.opname]
+  elif instr_stack_util.is_jump_instruction(instruction):
+    cls = GenericJumpNode
+  else:
+    cls = GenericInstructionNode
+  return cls(instruction)
+  

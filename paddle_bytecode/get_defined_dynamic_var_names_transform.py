@@ -23,7 +23,8 @@ class GetDefinedDynamicVarNamesTransform:
 
   def STORE_FAST(self, ast_node):
     varname = ast_node.instruction.argval
-    if self.attr(ast_node).lifetime_allways_static:
+    assert len(self.attr(ast_node).lifetime_allways_static) == 1
+    if self.attr(ast_node).lifetime_allways_static[0]:
       # Do nothing.
       pass
     else:

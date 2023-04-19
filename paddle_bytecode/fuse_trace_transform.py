@@ -22,7 +22,23 @@ class FuseTraceTransform:
     if not hasattr(self, ast_cls.__name__):
       assert len(ast_cls.__bases__) == 1
       ast_cls = ast_cls.__bases__[0]
+    assert hasattr(self, ast_cls.__name__), "type(ast_node): %s" % type(ast_node)
     return getattr(self, ast_cls.__name__)(ast_node)
+
+  def Program(self, ast_node):
+    new_children = [self(child) for child in ast_node.flat_children()]
+    program_node = bytecode_ast.Program(new_children)
+    return program_node
+
+  def LabelNode(self, ast_node):
+    return ast_node
+
+  def JumpNodeBase(self, ast_node):
+    return ast_node
+
+  def StmtExpressionNode(self, ast_node):
+    new_stmt_list_node = self(ast_node.statement_list_node)
+    return type(ast_node)(new_stmt_list_node, self.expr_node)
 
   def StatementListNode(self, ast_node):
     new_children = []
@@ -123,8 +139,9 @@ class FuseTraceTransform:
       starts_line=-1,
       is_jump_target=None,
     )
-    return_value_node = bytecode_ast.GenericInstructionNode(return_value_instr) 
-    return [*backbone, load_const_node, return_value_node]
+    return_value_node = bytecode_ast.create_instruction_node(return_value_instr) 
+    store_node = bytecode_ast.ReturnValueNode(load_const_node, [(return_value_node,)])
+    return [*backbone, store_node]
 
   def generate_func_body_for_one_return(self, backbone, ret_varname):
     '''append python code `return $ret_varname`'''
@@ -152,49 +169,58 @@ class FuseTraceTransform:
       starts_line=-1,
       is_jump_target=None,
     )
-    return_value_node = bytecode_ast.GenericInstructionNode(return_value_instr) 
-    return [*backbone, load_fast_node, return_value_node]
+    return_value_node = bytecode_ast.create_instruction_node(return_value_instr) 
+    store_node = bytecode_ast.ReturnValueNode(load_fast_node, [(return_value_node,)])
+    return [*backbone, store_node]
 
   def generate_func_body_for_multi_return(self, backbone, ret_varnames):
     '''append python code `return *$ret_varnames`'''
-    load_fast_nodes = []
-    for ret_varname in ret_varnames:
-      load_fast_opname = "LOAD_FAST"
-      load_fast_instr = Instruction(
-        opcode=dis.opmap[load_fast_opname],
-        opname=load_fast_opname,
-        arg=-1,
-        argval=ret_varname,
-        argrepr=ret_varname,
+    def create_build_tuple_expr_node():
+      load_fast_nodes = []
+      for ret_varname in ret_varnames:
+        load_fast_opname = "LOAD_FAST"
+        load_fast_instr = Instruction(
+          opcode=dis.opmap[load_fast_opname],
+          opname=load_fast_opname,
+          arg=-1,
+          argval=ret_varname,
+          argrepr=ret_varname,
+          offset=-1,
+          starts_line=-1,
+          is_jump_target=None,
+        )
+        load_fast_nodes.append(bytecode_ast.LOAD_FAST(load_fast_instr))
+      build_tuple_opname = "BUILD_TUPLE"
+      build_tuple_instr = Instruction(
+        opcode=dis.opmap[build_tuple_opname],
+        opname=build_tuple_opname,
+        arg=len(ret_varnames),
+        argval=len(ret_varnames),
+        argrepr="",
         offset=-1,
         starts_line=-1,
         is_jump_target=None,
       )
-      load_fast_nodes.append(bytecode_ast.LOAD_FAST(load_fast_instr))
-    build_tuple_opname = "BUILD_TUPLE"
-    build_tuple_instr = Instruction(
-      opcode=dis.opmap[build_tuple_opname],
-      opname=build_tuple_opname,
-      arg=len(ret_varnames),
-      argval=len(ret_varnames),
-      argrepr="",
-      offset=-1,
-      starts_line=-1,
-      is_jump_target=None,
-    )
-    return_value_opname = "RETURN_VALUE"
-    return_value_instr = Instruction(
-      opcode=dis.opmap[return_value_opname],
-      opname=return_value_opname,
-      arg=-1,
-      argval=None,
-      argrepr="",
-      offset=-1,
-      starts_line=-1,
-      is_jump_target=None,
-    )
-    return_value_node = bytecode_ast.GenericInstructionNode(return_value_instr) 
-    return [*backbone, *load_fast_nodes, build_tuple_opname, return_value_node]
+      build_tuple_instr_node = bytecode_ast.create_instruction_node(build_tuple_instr)
+      return bytecode_ast.GenericExpressionNode(load_fast_nodes, build_tuple_instr_node)
+    build_tuple_expr_node = create_build_tuple_expr_node()
+    def create_store_node(build_tuple_expr_node):
+      return_value_opname = "RETURN_VALUE"
+      return_value_instr = Instruction(
+        opcode=dis.opmap[return_value_opname],
+        opname=return_value_opname,
+        arg=-1,
+        argval=None,
+        argrepr="",
+        offset=-1,
+        starts_line=-1,
+        is_jump_target=None,
+      )
+      return_value_node = bytecode_ast.create_instruction_node(return_value_instr) 
+      store_node = bytecode_ast.ReturnValueNode(build_tuple_expr_node, [(return_value_node,)])
+      return store_node
+    store_node = create_store_node()
+    return [*backbone, store_node]
 
   def create_func_make_ast_node(self, func_body, func_name, co_argcount):
     children = []
@@ -240,12 +266,14 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      make_function_node = bytecode_ast.GenericInstructionNode(make_function_instr)
+      make_function_node = bytecode_ast.create_instruction_node(make_function_instr)
       return make_function_node
     children.append(create_make_function_node())
     def create_make_function_expr_node(children):
       make_function_expr_node = bytecode_ast.MakeFunctionExprNode(children)
-      make_function_expr_node.function_body = bytecode_ast.StatementListNode(func_body)
+      stmt_list_node = bytecode_ast.StatementListNode(func_body)
+      program_node = bytecode_ast.Program([stmt_list_node])
+      make_function_expr_node.function_body = program_node
       make_function_expr_node.co_argcount = co_argcount
       return make_function_expr_node
     return create_make_function_expr_node(children)
@@ -288,7 +316,7 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      load_fast_node = bytecode_ast.GenericInstructionNode(load_fast_instr)
+      load_fast_node = bytecode_ast.create_instruction_node(load_fast_instr)
       return load_fast_node
     children = [
       *children,
@@ -306,7 +334,7 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      call_function_node = bytecode_ast.GenericInstructionNode(call_function_instr)
+      call_function_node = bytecode_ast.create_instruction_node(call_function_instr)
       return call_function_node
     children.append(create_call_function_node())
     func_call_expr_node = bytecode_ast.GenericExpressionNode(children)
@@ -325,7 +353,7 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      unpack_seq_ast_node = bytecode_ast.GenericInstructionNode(upack_seq_instr)
+      unpack_seq_ast_node = bytecode_ast.create_instruction_node(upack_seq_instr)
       return unpack_seq_ast_node
     if len(output_varnames) == 1:
       # no UNPACK_SEQUENCE.
@@ -345,7 +373,7 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      store_fast_node = bytecode_ast.GenericInstructionNode(store_fast_instr)
+      store_fast_node = bytecode_ast.create_instruction_node(store_fast_instr)
       return store_fast_node
     store_ast_nodes = list((create_store_fast_node(varname),) for varname in output_varnames)
     def create_statement_ast_node(unpack_seq_expr_node, store_ast_nodes):
@@ -367,7 +395,7 @@ class FuseTraceTransform:
         starts_line=-1,
         is_jump_target=None,
       )
-      pop_top_instr_node = bytecode_ast.GenericInstructionNode(pop_top_instr)
+      pop_top_instr_node = bytecode_ast.create_instruction_node(pop_top_instr)
       return pop_top_instr_node
     pop_top_instr_node = create_pop_top_instr_node()
     def create_statement_ast_node(pop_top_instr_node):

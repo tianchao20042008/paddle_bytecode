@@ -57,7 +57,7 @@ class BytecodeParser(BytecodeLexerToken,
         cls = bytecode_ast.GenericInstructionNode
       return cls(instruction)
 
-    def p_program(self, p):
+    def p_program_0(self, p):
         'program : statement_list'
         p[0] = bytecode_ast.Program([p[1]])
 
@@ -170,9 +170,13 @@ if __name__ == "__main__":
         c, d = bar, cd
         c[30], d.b, e.c = bar, cd, nice
         if cond:
-          b = 30 / 40
+            b = 30 / 40
         else:
-          d = 50
+            if cond:
+                if cond:
+                    e = 50
+            else:
+                d = 50
         return a + 30 * bar(bar(), bar(bar()))
     parser = BytecodeParser()
     from paddle_bytecode.print_transform import PrintTransform
