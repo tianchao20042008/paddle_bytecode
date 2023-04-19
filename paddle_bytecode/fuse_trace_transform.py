@@ -309,8 +309,8 @@ class FuseTraceTransform:
       load_fast_instr = Instruction(
         opcode=dis.opmap[load_fast_opname],
         opname=load_fast_opname,
-        arg=func_name,
-        argval=func_name,
+        arg=var_name,
+        argval=var_name,
         argrepr="",
         offset=-1,
         starts_line=-1,

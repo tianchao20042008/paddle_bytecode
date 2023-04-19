@@ -28,10 +28,6 @@ class GetUndefinedLocalVarNamesTransform:
   def LOAD_FAST(self, ast_node):
     varname = ast_node.instruction.argval
     if varname not in self._defined_local_varnames:
-      assert not (
-        self.attr(ast_node).is_result_static_convertible[0]
-        and self.attr(ast_node).lifetime_allways_static[0]
-      )
       self._undefined_local_varnames.append(varname)
     else:
       # Do nothing.

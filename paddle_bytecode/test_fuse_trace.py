@@ -83,8 +83,8 @@ class TestFuseTrace(unittest.TestCase):
       is_procedure_static_convertible=is_procedure_static_convertible,
       is_result_static_convertible=is_result_static_convertible,
     )
-    from pprint import pprint
-    pprint(DumpAttrTransform(lambda node: attr(node).lifetime_allways_static)(ast_node0))
+    # from pprint import pprint
+    # pprint(DumpAttrTransform(lambda node: attr(node).lifetime_allways_static)(ast_node0))
     fuse_trace = FuseTraceTransform(
       func_name=expected_func.__qualname__,
       attr=attr,
@@ -113,15 +113,15 @@ class TestFuseTrace(unittest.TestCase):
       func_name_prefix="func",
       func_name_seq_init=0,
     )
-    from pprint import pprint
-    print('-'*100)
-    print(PrettyStringTransform()(fused_ast_node))
-    print('-'*100)
-    print(PrettyStringTransform()(expected_ast_node))
-    print('-'*100)
+    # from pprint import pprint
+    # print('-'*100)
+    # print(PrettyStringTransform()(fused_ast_node))
+    # print('-'*100)
+    # print(PrettyStringTransform()(expected_ast_node))
+    # print('-'*100)
     self.assertTrue(DiffOpnameAndArgvalTransform()(fused_ast_node, expected_ast_node))
 
-  def _test_simple_dynamic_expression_assign(self): 
+  def test_simple_dynamic_expression_assign(self): 
     def foo0():
       x = bar() + 1
       return x
@@ -143,20 +143,26 @@ class TestFuseTrace(unittest.TestCase):
     )
     from pprint import pprint
     print('-'*100)
-    pprint(DumpTransform()(fused_ast_node))
+    print(PrettyStringTransform()(fused_ast_node))
     print('-'*100)
-    pprint(DumpTransform()(expected_ast_node))
+    print(PrettyStringTransform()(expected_ast_node))
     print('-'*100)
     self.assertTrue(DiffOpnameAndArgvalTransform()(fused_ast_node, expected_ast_node))
 
-  def _test_mixed_dynamic_expression_assign(self):
+  def test_mixed_dynamic_expression_assign(self):
     def foo0(x):
       x = static_func(1 + x, bar(), 2 + x)
       return x
     def foo1(x):
-      tmp1 = 1 + x
+      def func0(x):
+        tmp1 = 1 + x
+        return tmp1
+      tmp1 = func0(x)
       tmp2 = bar()
-      x = static_func(tmp1, tmp2, 2 + x)
+      def func1(tmp1, tmp2, x):
+        x = static_func(tmp1, tmp2, 2 + x)
+        return x
+      x = func1(tmp1, tmp2, x)
       return x
     flattened_ast_node, expected_ast_node = self.get_trace_fused_ast_nodes_and_expected(
       origin_func=foo0,
@@ -169,16 +175,25 @@ class TestFuseTrace(unittest.TestCase):
     )
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
-  def _test_static_dynamic_interleave_expression_assign(self):
+  def test_static_dynamic_interleave_expression_assign(self):
     def origin_func(x):
       x = static_func(1 + x, bar(static_func(bar())), 2 + x)
       return x
     def expected_func(x):
-      tmp1 = 1 + x
+      def func0(x):
+        tmp1 = 1 + x
+        return tmp1
+      tmp1 = func0(x)
       tmp2 = bar()
-      tmp3 = static_func(tmp2)
+      def func1(tmp2):
+        tmp3 = static_func(tmp2)
+        return tmp3
+      tmp3 = func1(tmp2)
       tmp4 = bar(tmp3)
-      x = static_func(tmp1, tmp4, 2 + x)
+      def func2(tmp1, tmp4, x):
+        x = static_func(tmp1, tmp4, 2 + x)
+        return x
+      x = func2(tmp1, tmp4, x)
       return x
     flattened_ast_node, expected_ast_node = self.get_trace_fused_ast_nodes_and_expected(
       origin_func=origin_func,
@@ -191,7 +206,7 @@ class TestFuseTrace(unittest.TestCase):
     )
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
-  def _test_nested_dynamic_expression(self):
+  def test_nested_dynamic_expression(self):
     def origin_func(x):
       x = bar(bar())
       return x
@@ -209,12 +224,15 @@ class TestFuseTrace(unittest.TestCase):
     )
     self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
 
-  def _test_nested_static_expression(self):
+  def test_nested_static_expression(self):
     def origin_func(x):
       x = static_bar(static_bar())
       return x
     def expected_func(x):
-      x = static_bar(static_bar())
+      def func0():
+        x = static_bar(static_bar())
+        return x
+      x = func0()
       return x
     flattened_ast_node, expected_ast_node = self.get_trace_fused_ast_nodes_and_expected(
       origin_func=origin_func,
