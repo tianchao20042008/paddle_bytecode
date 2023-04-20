@@ -141,12 +141,12 @@ class TestFuseTrace(unittest.TestCase):
       func_name_prefix="func",
       func_name_seq_init=0,
     )
-    from pprint import pprint
-    print('-'*100)
-    print(PrettyStringTransform()(fused_ast_node))
-    print('-'*100)
-    print(PrettyStringTransform()(expected_ast_node))
-    print('-'*100)
+    # from pprint import pprint
+    # print('-'*100)
+    # print(PrettyStringTransform()(fused_ast_node))
+    # print('-'*100)
+    # print(PrettyStringTransform()(expected_ast_node))
+    # print('-'*100)
     self.assertTrue(DiffOpnameAndArgvalTransform()(fused_ast_node, expected_ast_node))
 
   def test_mixed_dynamic_expression_assign(self):
@@ -164,7 +164,7 @@ class TestFuseTrace(unittest.TestCase):
         return x
       x = func1(tmp1, tmp2, x)
       return x
-    flattened_ast_node, expected_ast_node = self.get_trace_fused_ast_nodes_and_expected(
+    fused_ast_node, expected_ast_node = self.get_trace_fused_ast_nodes_and_expected(
       origin_func=foo0,
       expected_func=foo1,
       builtin_dynamic_funcs={"bar"},
@@ -173,7 +173,13 @@ class TestFuseTrace(unittest.TestCase):
       func_name_prefix="func",
       func_name_seq_init=0,
     )
-    self.assertTrue(DiffOpnameAndArgvalTransform()(flattened_ast_node, expected_ast_node))
+    # from pprint import pprint
+    # print('-'*100)
+    # print(PrettyStringTransform()(fused_ast_node))
+    # print('-'*100)
+    # print(PrettyStringTransform()(expected_ast_node))
+    # print('-'*100)
+    self.assertTrue(DiffOpnameAndArgvalTransform()(fused_ast_node, expected_ast_node))
 
   def test_static_dynamic_interleave_expression_assign(self):
     def origin_func(x):
