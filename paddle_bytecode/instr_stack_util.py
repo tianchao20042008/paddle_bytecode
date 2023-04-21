@@ -1,14 +1,194 @@
+from typing import Callable, Optional
 import dis
 import sys
+
+def get_next_instruction_and_jump_flags(
+    instruction: "Instruction",
+    get_instruction_index_by_offset: Callable[[int], int],
+    get_instruction_by_index: Callable[[int], Optional['Instruction']]
+  ):
+    def next_instruction_if_jump_true():
+      next_offset = instruction.argval
+      next_index = get_instruction_index_by_offset(next_offset)
+      next_instruction = get_instruction_by_index(next_offset)
+      assert next_instruction is not None
+      return next_instruction
+    def next_instruction_if_jump_false():
+      next_index = get_instruction_index_by_offset(instruction.offset) + 1
+      next_instruction = get_instruction_by_index(next_index)
+      return next_instruction
+    if not is_jump_instruction(instruction):
+      next_instruction = next_instruction_if_jump_false()
+      if next_instruction is not None:
+        yield (next_instruction, None)
+    elif instruction.opname in {'JUMP_FORWARD', 'JUMP_ABSOLUTE'}:
+      yield (next_instruction_if_jump_true(), True)
+    else:
+      yield (next_instruction_if_jump_true(), True)
+      next_instruction = next_instruction_if_jump_false()
+      if next_instruction is not None:
+        yield (next_instruction, False)
+
+def outputs_used_for_ctrl(inputs_used_for_ctrl, instruction, jump):
+  assert len(inputs_used_for_ctrl) == num_inputs_on_stack(instruction, jump)
+  if instruction.opname == 'ROT_TWO':
+    return inputs_used_for_ctrl[-1], inputs_used_for_ctrl[-2]
+  elif instruction.opname == 'ROT_THREE':
+    return inputs_used_for_ctrl[-1], inputs_used_for_ctrl[-3], inputs_used_for_ctrl[-2]
+  elif instruction.opname == 'ROT_FOUR':
+    return (
+      inputs_used_for_ctrl[-1],
+      inputs_used_for_ctrl[-4],
+      inputs_used_for_ctrl[-3],
+      inputs_used_for_ctrl[-2],
+    )
+  if instruction.opname == 'DUP_TOP':
+    return (inputs_used_for_ctrl[0], inputs_used_for_ctrl[0])
+  if instruction.opname == 'DUP_TOP_TWO':
+    return (
+      inputs_used_for_ctrl[-2],
+      inputs_used_for_ctrl[-1],
+      inputs_used_for_ctrl[-2],
+      inputs_used_for_ctrl[-1],
+    )
+  else:
+    for_ctrl = instruction.opname not in opnames_with_static_convertible_output
+    return (for_ctrl,) * num_outputs_on_stack(instruction, jump)
+    
+if sys.version_info[0:2] == (3, 8):
+  opnames_with_static_convertible_output = {
+    'POP_TOP',
+    'ROT_TWO',
+    'ROT_THREE',
+    'DUP_TOP',
+    'DUP_TOP_TWO',
+    'ROT_FOUR',
+    'NOP',
+    'UNARY_POSITIVE',
+    'UNARY_NEGATIVE',
+    'UNARY_NOT',
+    'UNARY_INVERT',
+    'BINARY_MATRIX_MULTIPLY',
+    'INPLACE_MATRIX_MULTIPLY',
+    'BINARY_POWER',
+    'BINARY_MULTIPLY',
+    'BINARY_MODULO',
+    'BINARY_ADD',
+    'BINARY_SUBTRACT',
+    'BINARY_SUBSCR',
+    'BINARY_FLOOR_DIVIDE',
+    'BINARY_TRUE_DIVIDE',
+    'INPLACE_FLOOR_DIVIDE',
+    'INPLACE_TRUE_DIVIDE',
+   #'GET_AITER',
+    'GET_ANEXT',
+   #'BEFORE_ASYNC_WITH',
+   #'BEGIN_FINALLY',
+   #'END_ASYNC_FOR',
+    'INPLACE_ADD',
+    'INPLACE_SUBTRACT',
+    'INPLACE_MULTIPLY',
+    'INPLACE_MODULO',
+    'STORE_SUBSCR',
+    'DELETE_SUBSCR',
+    'BINARY_LSHIFT',
+    'BINARY_RSHIFT',
+    'BINARY_AND',
+    'BINARY_XOR',
+    'BINARY_OR',
+    'INPLACE_POWER',
+   #'GET_ITER',
+   #'GET_YIELD_FROM_ITER',
+   #'PRINT_EXPR',
+   #'LOAD_BUILD_CLASS',
+   #'YIELD_FROM',
+   #'GET_AWAITABLE',
+    'INPLACE_LSHIFT',
+    'INPLACE_RSHIFT',
+    'INPLACE_AND',
+    'INPLACE_XOR',
+    'INPLACE_OR',
+   #'WITH_CLEANUP_START',
+   #'WITH_CLEANUP_FINISH',
+   #'RETURN_VALUE',
+   #'IMPORT_STAR',
+   #'SETUP_ANNOTATIONS',
+   #'YIELD_VALUE',
+   #'POP_BLOCK',
+   #'END_FINALLY',
+   #'POP_EXCEPT',
+    'STORE_NAME',
+    'DELETE_NAME',
+    'UNPACK_SEQUENCE',
+    'FOR_ITER',
+    'UNPACK_EX',
+    'STORE_ATTR',
+    'DELETE_ATTR',
+    'STORE_GLOBAL',
+    'DELETE_GLOBAL',
+    'LOAD_CONST',
+    'LOAD_NAME',
+    'BUILD_TUPLE',
+    'BUILD_LIST',
+    'BUILD_SET',
+    'BUILD_MAP',
+    'LOAD_ATTR',
+    'COMPARE_OP',
+   #'IMPORT_NAME',
+   #'IMPORT_FROM',
+   #'JUMP_FORWARD',
+   #'JUMP_IF_FALSE_OR_POP',
+   #'JUMP_IF_TRUE_OR_POP',
+   #'JUMP_ABSOLUTE',
+   #'POP_JUMP_IF_FALSE',
+   #'POP_JUMP_IF_TRUE',
+    'LOAD_GLOBAL',
+   #'SETUP_FINALLY',
+    'LOAD_FAST',
+    'STORE_FAST',
+    'DELETE_FAST',
+   #'RAISE_VARARGS',
+    'CALL_FUNCTION',
+    'MAKE_FUNCTION',
+    'BUILD_SLICE',
+    'LOAD_CLOSURE',
+    'LOAD_DEREF',
+    'STORE_DEREF',
+    'DELETE_DEREF',
+    'CALL_FUNCTION_KW',
+    'CALL_FUNCTION_EX',
+   #'SETUP_WITH',
+    'LIST_APPEND',
+    'SET_ADD',
+    'MAP_ADD',
+    'LOAD_CLASSDEREF',
+    'EXTENDED_ARG',
+    'BUILD_LIST_UNPACK',
+    'BUILD_MAP_UNPACK',
+    'BUILD_MAP_UNPACK_WITH_CALL',
+    'BUILD_TUPLE_UNPACK',
+    'BUILD_SET_UNPACK',
+   #'SETUP_ASYNC_WITH',
+    'FORMAT_VALUE',
+    'BUILD_CONST_KEY_MAP',
+    'BUILD_STRING',
+    'BUILD_TUPLE_UNPACK_WITH_CALL',
+    'LOAD_METHOD',
+    'CALL_METHOD',
+   #'CALL_FINALLY',
+   #'POP_FINALLY',
+  }
+else:
+  raise NotImplementedError("paddle_bytecode module is not supported in version %s" % sys.version_info)
 
 def is_jump_instruction(instruction):
   return opcode2hasjrel[instruction.opcode] or opcode2hasjabs[instruction.opcode]
 
-def stack_effect(instruction):
-  return dis.stack_effect(instruction.opcode, instruction.arg)
+def stack_effect(instruction, jump=None):
+  return dis.stack_effect(instruction.opcode, instruction.arg, jump=jump)
 
-def num_inputs_on_stack(instruction):
-  return num_outputs_on_stack(instruction) - stack_effect(instruction)
+def num_inputs_on_stack(instruction, jump=None):
+  return num_outputs_on_stack(instruction, jump) - stack_effect(instruction, jump)
   
 # For all instructions Please keep that
 #
@@ -19,8 +199,8 @@ def num_inputs_on_stack(instruction):
 #   stack_effect(ROT_THREE) is 0, actual_number_stack_elements_consumed(ROT_THREE) is 3,
 #   so we must define num_outputs_on_stack(ROT_THREE) as 3.
 #  
-def num_outputs_on_stack(instruction):
-  return opcode2num_outputs_on_stack[instruction.opcode](instruction)
+def num_outputs_on_stack(instruction, jump=None):
+  return opcode2num_outputs_on_stack[instruction.opcode](instruction, jump)
 
 
 if sys.version_info[0:2] == (3, 8):
@@ -273,11 +453,11 @@ else:
 
 def generate_opcode2num_outputs_on_stack():
   def UnimplementedFunction(opcode):
-    def f(instruction):
+    def f(instruction, jump=None):
       raise NotImplementedError("static_num_outputs is not implemented for opname: %s" % dis.opname[opcode])
     return f
   def Const(number):
-    return lambda _: number
+    return lambda _, jump=None: number
   opcode_size = 256
   opcode2num_outputs_on_stack = [UnimplementedFunction(i) for i in range(opcode_size)]
   for opname, num_or_f in opname2output_num_or_f.items():
